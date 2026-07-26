@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "594419438395",
+    "project_id": "nchat-31243",
+    "storage_bucket": "nchat-31243.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594419438395:android:92aec8de298d4d0af11d1e",
+        "android_client_info": {
+          "package_name": "com.example.nchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFu2qzT8GfhldYEx-hZ6PXp7fwUy76Dhs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
