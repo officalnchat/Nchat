@@ -43,6 +43,7 @@ class ChatController {
     return _firestoreService.getUser(receiverId);
   }
 
+
   // ===========================
   // Typing
   // ===========================
@@ -57,49 +58,110 @@ class ChatController {
     );
   }
 
+
   // ===========================
-  // Messages
+  // Messages Stream
   // ===========================
 
   Stream<QuerySnapshot> getMessages() async* {
+
     final chatId = await getChatId();
+
+    currentUserId ??=
+        await _firestoreService.getCurrentUserId();
 
     yield* _firestoreService.getMessages(chatId);
   }
 
+
+  // ===========================
+  // Update Message Status
+  // ===========================
+
+  Future<void> updateMessageStatus() async {
+
+    final chatId = await getChatId();
+
+    currentUserId ??=
+        await _firestoreService.getCurrentUserId();
+
+
+    // Grey Double Tick
+    await _firestoreService.markMessagesDelivered(
+      chatId: chatId,
+      currentUserId: currentUserId!,
+    );
+
+
+    // Blue Double Tick
+    await _firestoreService.markMessagesSeen(
+      chatId: chatId,
+      currentUserId: currentUserId!,
+    );
+  }
+
+
+
+  // ===========================
+  // Load Messages
+  // ===========================
+
   void loadMessages(QuerySnapshot snapshot) {
+
     messages = snapshot.docs.map((doc) {
+
       final data =
           doc.data() as Map<String, dynamic>;
 
+
       return {
-        "text": data["message"] ?? "",
+        "docId": doc.id,
+
+        "text":
+            data["message"] ?? "",
+
         "isMe":
             data["senderId"] == currentUserId,
-        "time": _formatMessageTime(
-          data["timestamp"],
-        ),
-        "isSeen": data["isSeen"] ?? false,
+
+        "time":
+            _formatMessageTime(
+              data["timestamp"],
+            ),
+
+        "status":
+            data["status"] ?? 1,
       };
+
     }).toList();
+
 
     Future.delayed(
       const Duration(milliseconds: 100),
       () {
+
         if (scrollController.hasClients) {
+
           scrollController.animateTo(
             scrollController.position.maxScrollExtent,
-            duration: const Duration(
-              milliseconds: 300,
-            ),
+
+            duration:
+                const Duration(
+                  milliseconds: 300,
+                ),
+
             curve: Curves.easeOut,
           );
+
         }
+
       },
     );
   }
 
+
+
   String _formatMessageTime(dynamic timestamp) {
+
     if (timestamp == null) return "";
 
     final date =
@@ -108,63 +170,98 @@ class ChatController {
     return _format12Hour(date);
   }
 
+
+
   // ===========================
   // Last Seen
   // ===========================
 
   String formatLastSeen(dynamic timestamp) {
+
     if (timestamp == null) {
       return "Offline";
     }
 
+
     final date =
         (timestamp as Timestamp).toDate();
 
-    final now = DateTime.now();
 
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final now =
+        DateTime.now();
 
-    final messageDay = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    );
+
+    final today =
+        DateTime(
+          now.year,
+          now.month,
+          now.day,
+        );
+
+
+    final messageDay =
+        DateTime(
+          date.year,
+          date.month,
+          date.day,
+        );
+
 
     final difference =
-        today.difference(messageDay).inDays;
+        today
+            .difference(messageDay)
+            .inDays;
+
 
     if (difference == 0) {
+
       return "Last seen today at ${_format12Hour(date)}";
+
     }
+
 
     if (difference == 1) {
+
       return "Last seen yesterday at ${_format12Hour(date)}";
+
     }
 
-    return "Last seen ${date.day}/${date.month}/${date.year} at ${_format12Hour(date)}";
+
+    return
+        "Last seen ${date.day}/${date.month}/${date.year} at ${_format12Hour(date)}";
   }
 
+
+
   String _format12Hour(DateTime date) {
+
     int hour = date.hour;
 
+
     final minute =
-        date.minute.toString().padLeft(2, '0');
+        date.minute
+            .toString()
+            .padLeft(2, '0');
+
 
     final period =
         hour >= 12 ? "PM" : "AM";
 
-    hour = hour % 12;
+
+    hour =
+        hour % 12;
+
 
     if (hour == 0) {
       hour = 12;
     }
 
+
     return "$hour:$minute $period";
   }
+
+
+
 
   // ===========================
   // Send Message
@@ -174,35 +271,57 @@ class ChatController {
     BuildContext context,
     VoidCallback refresh,
   ) async {
+
+
     final text =
         messageController.text.trim();
 
+
     if (text.isEmpty) return;
+
+
 
     currentUserId ??=
         await _firestoreService.getCurrentUserId();
 
-    final chatId = await getChatId();
+
+
+    final chatId =
+        await getChatId();
+
+
 
     await _firestoreService.sendMessage(
       chatId: chatId,
       senderId: currentUserId!,
+      receiverId: receiverId,
       message: text,
     );
 
-    // Stop Typing
+
+
     await setTyping(false);
+
+
 
     messageController.clear();
 
+
     refresh();
+
   }
 
+
+
+
   void dispose() {
-    // Stop Typing while leaving chat
+
     setTyping(false);
 
     messageController.dispose();
+
     scrollController.dispose();
+
   }
+
 }

@@ -52,15 +52,12 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 1,
         centerTitle: false,
         titleSpacing: 0,
-
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
-
         actionsIconTheme: const IconThemeData(
           color: Colors.white,
         ),
-
         title: StreamBuilder<DocumentSnapshot>(
           stream: chatController.getReceiver(),
           builder: (context, snapshot) {
@@ -136,7 +133,6 @@ class _ChatScreenState extends State<ChatScreen> {
             );
           },
         ),
-
         actions: [
           IconButton(
             onPressed: () {
@@ -144,14 +140,12 @@ class _ChatScreenState extends State<ChatScreen> {
             },
             icon: const Icon(Icons.videocam),
           ),
-
           IconButton(
             onPressed: () {
               // Voice Call
             },
             icon: const Icon(Icons.call),
           ),
-
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.more_vert),
@@ -182,6 +176,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 chatController.loadMessages(
                   snapshot.data!,
                 );
+                chatController.updateMessageStatus();
 
                 return ListView.builder(
                   controller:
@@ -196,7 +191,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       message: message["text"],
                       time: message["time"],
                       isMe: message["isMe"],
-                      isSeen: message["isSeen"],
+                      status: message["status"],
                     );
                   },
                 );
@@ -222,5 +217,5 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
-  }
+  } 
 }

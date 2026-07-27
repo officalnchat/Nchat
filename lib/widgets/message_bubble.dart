@@ -4,14 +4,14 @@ class MessageBubble extends StatelessWidget {
   final String message;
   final String time;
   final bool isMe;
-  final bool isSeen;
+  final int status;
 
   const MessageBubble({
     super.key,
     required this.message,
     required this.time,
     required this.isMe,
-    this.isSeen = true,
+    this.status = 1,
   });
 
   @override
@@ -38,8 +38,12 @@ class MessageBubble extends StatelessWidget {
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 16),
+            bottomLeft: Radius.circular(
+              isMe ? 16 : 0,
+            ),
+            bottomRight: Radius.circular(
+              isMe ? 0 : 16,
+            ),
           ),
         ),
         child: Column(
@@ -77,11 +81,13 @@ class MessageBubble extends StatelessWidget {
                   const SizedBox(width: 4),
 
                   Icon(
-                    isSeen
+                    status == 3
                         ? Icons.done_all
-                        : Icons.done,
+                        : status == 2
+                            ? Icons.done_all
+                            : Icons.done,
                     size: 16,
-                    color: isSeen
+                    color: status == 3
                         ? Colors.blue
                         : Colors.white70,
                   ),
