@@ -87,12 +87,16 @@ class FirestoreService {
   // Send Text Message
   // ===========================
 
-  Future<void> sendMessage({
-    required String chatId,
-    required String senderId,
-    required String receiverId,
-    required String message,
-  }) async {
+ Future<void> sendMessage({
+  required String chatId,
+  required String senderId,
+  required String receiverId,
+  required String message,
+
+  String? replyMessage,
+  String? replyType,
+})
+  async {
     await chatsCollection
         .doc(chatId)
         .collection('messages')
@@ -110,6 +114,9 @@ class FirestoreService {
       'status': 1,
 
       'type': 'text',
+      
+      'replyMessage': replyMessage ?? '',
+'replyType': replyType ?? '',
     });
   }
 
@@ -118,11 +125,14 @@ class FirestoreService {
   // ===========================
 
   Future<void> sendImageMessage({
-    required String chatId,
-    required String senderId,
-    required String receiverId,
-    required String imageUrl,
-  }) async {
+  required String chatId,
+  required String senderId,
+  required String receiverId,
+  required String imageUrl,
+
+  String? replyMessage,
+  String? replyType,
+}) async {
     await chatsCollection
         .doc(chatId)
         .collection('messages')
@@ -145,6 +155,9 @@ class FirestoreService {
       'status': 1,
 
       'type': 'image',
+
+      'replyMessage': replyMessage ?? '',
+'replyType': replyType ?? '',
     });
   }
 

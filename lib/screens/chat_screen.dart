@@ -250,12 +250,75 @@ if (chatController.searchController.text.isNotEmpty) {
   time: message["time"],
   isMe: message["isMe"],
   status: message["status"],
+
+  replyMessage: message["replyMessage"],
+replyType: message["replyType"],
+
+  onSwipeReply: () {
+    setState(() {
+      chatController.setReplyMessage(message);
+    });
+  },
 );
                   },
                 );
               },
             ),
           ),
+
+if (chatController.replyMessage != null)
+  Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade200,
+      border: Border(
+        left: BorderSide(
+          color: Colors.green,
+          width: 4,
+        ),
+      ),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Replying to",
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+             Text(
+  chatController.replyMessage!["type"] == "image"
+      ? "📷 Photo"
+      : chatController.replyMessage!["text"],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+
+        IconButton(
+          onPressed: () {
+            setState(() {
+              chatController.clearReplyMessage();
+            });
+          },
+          icon: const Icon(Icons.close),
+        ),
+      ],
+    ),
+  ),
 
           ChatInputBar(
   controller:

@@ -38,6 +38,22 @@ List<Map<String, dynamic>> filteredMessages = [];
 
 bool isSearching = false;
 
+// ===========================
+// Reply
+// ===========================
+
+Map<String, dynamic>? replyMessage;
+
+void setReplyMessage(
+  Map<String, dynamic> message,
+) {
+  replyMessage = message;
+}
+
+void clearReplyMessage() {
+  replyMessage = null;
+}
+
   String? currentUserId;
 
   Future<String> getChatId() async {
@@ -138,6 +154,13 @@ bool isSearching = false;
         ),
         "status":
             data["status"] ?? 1,
+
+            "replyMessage":
+      data["replyMessage"] ?? "",
+
+       "replyType":
+      data["replyType"] ?? "",
+      
       };
     }).toList();
     
@@ -271,18 +294,26 @@ void searchMessages(String query) {
     final chatId =
         await getChatId();
 
-    await _firestoreService.sendMessage(
-      chatId: chatId,
-      senderId: currentUserId!,
-      receiverId: receiverId,
-      message: text,
-    );
+   await _firestoreService.sendMessage(
+  chatId: chatId,
+  senderId: currentUserId!,
+  receiverId: receiverId,
+  message: text,
 
-    await setTyping(false);
+  replyMessage:
+      replyMessage?["text"],
 
-    messageController.clear();
+  replyType:
+      replyMessage?["type"],
+);
 
-    refresh();
+   await setTyping(false);
+
+messageController.clear();
+
+clearReplyMessage();
+
+refresh();
   }
     // ===========================
   // Send Image
@@ -316,15 +347,23 @@ void searchMessages(String query) {
     }
 
     await _firestoreService.sendImageMessage(
-      chatId: chatId,
-      senderId: currentUserId!,
-      receiverId: receiverId,
-      imageUrl: imageUrl,
-    );
+  chatId: chatId,
+  senderId: currentUserId!,
+  receiverId: receiverId,
+  imageUrl: imageUrl,
 
-    await setTyping(false);
+  replyMessage:
+      replyMessage?["text"],
 
-    refresh();
+  replyType:
+      replyMessage?["type"],
+);
+
+  await setTyping(false);
+
+clearReplyMessage();
+
+refresh();
   }
     // ===========================
   // Dispose

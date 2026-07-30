@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MessageBubble extends StatelessWidget {
+  final String replyMessage;
+  final String replyType;
   final String message;
   final String imageUrl;
   final String type;
@@ -18,6 +20,8 @@ class MessageBubble extends StatelessWidget {
     required this.type,
     required this.time,
     required this.isMe,
+    required this.replyMessage,
+    required this.replyType,
     this.status = 1,
     this.onSwipeReply,
   });
@@ -73,6 +77,42 @@ class MessageBubble extends StatelessWidget {
             crossAxisAlignment:
                 CrossAxisAlignment.end,
             children: [
+
+              if (replyMessage.isNotEmpty)
+  Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: Colors.black12,
+      borderRadius: BorderRadius.circular(8),
+      border: Border(
+        left: BorderSide(
+          color: Colors.green,
+          width: 4,
+        ),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          replyType == "image"
+              ? "📷 Photo"
+              : replyMessage,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isMe
+                ? Colors.white
+                : Colors.black,
+          ),
+        ),
+      ],
+    ),
+  ),
 
               if (type == "image")
                 ClipRRect(
