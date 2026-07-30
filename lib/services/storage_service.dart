@@ -47,8 +47,8 @@ class StorageService {
 
       return downloadUrl;
     } catch (e) {
-      print("Image Upload Error: $e");
-      return null;
-    }
+  print("IMAGE UPLOAD ERROR: $e");
+  rethrow;
+}
   }
 }

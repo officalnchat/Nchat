@@ -23,6 +23,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   late ChatController chatController;
 
+  bool isSearchMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,11 +34,14 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    chatController.dispose();
-    super.dispose();
-  }
+ @override
+void dispose() {
+  isSearchMode = false;
+
+  chatController.dispose();
+
+  super.dispose();
+}
 
   void refresh() {
     setState(() {});
@@ -58,7 +63,27 @@ class _ChatScreenState extends State<ChatScreen> {
         actionsIconTheme: const IconThemeData(
           color: Colors.white,
         ),
-        title: StreamBuilder<DocumentSnapshot>(
+        title: isSearchMode
+    ? TextField(
+        controller: chatController.searchController,
+        autofocus: true,
+        style: const TextStyle(
+          color: Colors.white,
+        ),
+        decoration: const InputDecoration(
+          hintText: "Search messages...",
+          hintStyle: TextStyle(
+            color: Colors.white70,
+          ),
+          border: InputBorder.none,
+        ),
+        onChanged: (value) {
+          setState(() {
+            chatController.searchMessages(value);
+          });
+        },
+      )
+    : StreamBuilder<DocumentSnapshot>(
           stream: chatController.getReceiver(),
           builder: (context, snapshot) {
             String status = "Offline";
@@ -134,23 +159,49 @@ class _ChatScreenState extends State<ChatScreen> {
           },
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              // Video Call
-            },
-            icon: const Icon(Icons.videocam),
-          ),
-          IconButton(
-            onPressed: () {
-              // Voice Call
-            },
-            icon: const Icon(Icons.call),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert),
-          ),
-        ],
+  if (!isSearchMode) ...[
+    IconButton(
+      onPressed: () {
+        setState(() {
+          isSearchMode = true;
+        });
+      },
+      icon: const Icon(Icons.search),
+    ),
+
+    IconButton(
+      onPressed: () {
+        // Video Call
+      },
+      icon: const Icon(Icons.videocam),
+    ),
+
+    IconButton(
+      onPressed: () {
+        // Voice Call
+      },
+      icon: const Icon(Icons.call),
+    ),
+
+    IconButton(
+      onPressed: () {},
+      icon: const Icon(Icons.more_vert),
+    ),
+  ] else ...[
+    IconButton(
+      onPressed: () {
+        setState(() {
+          isSearchMode = false;
+
+          chatController.searchController.clear();
+
+          chatController.searchMessages("");
+        });
+      },
+      icon: const Icon(Icons.close),
+    ),
+  ],
+],
       ),
 
       body: Column(
@@ -173,26 +224,33 @@ class _ChatScreenState extends State<ChatScreen> {
                   );
                 }
 
-                chatController.loadMessages(
-                  snapshot.data!,
-                );
-                chatController.updateMessageStatus();
+               chatController.loadMessages(
+  snapshot.data!,
+);
 
+chatController.updateMessageStatus();
+
+if (chatController.searchController.text.isNotEmpty) {
+  chatController.searchMessages(
+    chatController.searchController.text,
+  );
+}
                 return ListView.builder(
                   controller:
                       chatController.scrollController,
                   itemCount:
-                      chatController.messages.length,
+                      chatController.filteredMessages.length,
                   itemBuilder: (context, index) {
                     final message =
-                        chatController.messages[index];
-
+                        chatController.filteredMessages[index];
                     return MessageBubble(
-                      message: message["text"],
-                      time: message["time"],
-                      isMe: message["isMe"],
-                      status: message["status"],
-                    );
+  message: message["text"],
+  imageUrl: message["imageUrl"],
+  type: message["type"],
+  time: message["time"],
+  isMe: message["isMe"],
+  status: message["status"],
+);
                   },
                 );
               },
@@ -200,20 +258,29 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           ChatInputBar(
-            controller:
-                chatController.messageController,
-            onTypingChanged: (typing) async {
-              await chatController.setTyping(
-                typing,
-              );
-            },
-            onSend: () {
-              chatController.sendMessage(
-                context,
-                refresh,
-              );
-            },
-          ),
+  controller:
+      chatController.messageController,
+
+  onTypingChanged: (typing) async {
+    await chatController.setTyping(
+      typing,
+    );
+  },
+
+  onSend: () {
+    chatController.sendMessage(
+      context,
+      refresh,
+    );
+  },
+
+  onImageTap: () {
+    chatController.sendImage(
+      context,
+      refresh,
+    );
+  },
+),
         ],
       ),
     );

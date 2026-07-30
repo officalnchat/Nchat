@@ -31,8 +31,8 @@ class FirestoreService {
   }) async {
     final Reference ref = _storage
         .ref()
-        .child("profile_images")
-        .child("$userId.jpg");
+        .child('profile_images')
+        .child('$userId.jpg');
 
     await ref.putFile(imageFile);
 
@@ -50,18 +50,18 @@ class FirestoreService {
     String? photoUrl,
   }) async {
     await usersCollection.doc(userId).set({
-      "userId": userId,
-      "name": name,
-      "about": about,
-      "photoUrl": photoUrl ?? "",
-      "createdAt":
+      'userId': userId,
+      'name': name,
+      'about': about,
+      'photoUrl': photoUrl ?? '',
+      'createdAt':
           FieldValue.serverTimestamp(),
 
       // Presence
-      "isOnline": false,
-      "lastSeen":
+      'isOnline': false,
+      'lastSeen':
           FieldValue.serverTimestamp(),
-      "isTyping": false,
+      'isTyping': false,
     });
   }
 
@@ -71,7 +71,7 @@ class FirestoreService {
 
   Stream<QuerySnapshot> getUsers() {
     return usersCollection
-        .orderBy("createdAt")
+        .orderBy('createdAt')
         .snapshots();
   }
 
@@ -84,7 +84,7 @@ class FirestoreService {
   }
 
   // ===========================
-  // Send Message
+  // Send Text Message
   // ===========================
 
   Future<void> sendMessage({
@@ -95,33 +95,74 @@ class FirestoreService {
   }) async {
     await chatsCollection
         .doc(chatId)
-        .collection("messages")
+        .collection('messages')
         .add({
-      "senderId": senderId,
-      "receiverId": receiverId,
-      "message": message,
-      "timestamp":
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'message': message,
+      'imageUrl': '',
+      'timestamp':
           FieldValue.serverTimestamp(),
 
       // 1 = Sent
       // 2 = Delivered
       // 3 = Seen
-      "status": 1,
+      'status': 1,
 
-      "type": "text",
+      'type': 'text',
     });
   }
+
+  // ===========================
+  // Send Image Message
+  // ===========================
+
+  Future<void> sendImageMessage({
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String imageUrl,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection('messages')
+        .add({
+      'senderId': senderId,
+      'receiverId': receiverId,
+
+      // No text for image messages
+      'message': '',
+
+      // Image URL
+      'imageUrl': imageUrl,
+
+      'timestamp':
+          FieldValue.serverTimestamp(),
+
+      // 1 = Sent
+      // 2 = Delivered
+      // 3 = Seen
+      'status': 1,
+
+      'type': 'image',
+    });
+  }
+
+  // ===========================
+  // Messages Stream
+  // ===========================
 
   Stream<QuerySnapshot> getMessages(
     String chatId,
   ) {
     return chatsCollection
         .doc(chatId)
-        .collection("messages")
-        .orderBy("timestamp")
+        .collection('messages')
+        .orderBy('timestamp')
         .snapshots();
   }
-    // ===========================
+
+  // ===========================
   // Delivered
   // ===========================
 
@@ -131,20 +172,20 @@ class FirestoreService {
   }) async {
     final snapshot = await chatsCollection
         .doc(chatId)
-        .collection("messages")
+        .collection('messages')
         .where(
-          "receiverId",
+          'receiverId',
           isEqualTo: currentUserId,
         )
         .where(
-          "status",
+          'status',
           isEqualTo: 1,
         )
         .get();
 
     for (final doc in snapshot.docs) {
       await doc.reference.update({
-        "status": 2,
+        'status': 2,
       });
     }
   }
@@ -159,20 +200,20 @@ class FirestoreService {
   }) async {
     final snapshot = await chatsCollection
         .doc(chatId)
-        .collection("messages")
+        .collection('messages')
         .where(
-          "receiverId",
+          'receiverId',
           isEqualTo: currentUserId,
         )
         .where(
-          "status",
+          'status',
           isEqualTo: 2,
         )
         .get();
 
     for (final doc in snapshot.docs) {
       await doc.reference.update({
-        "status": 3,
+        'status': 3,
       });
     }
   }
@@ -185,8 +226,8 @@ class FirestoreService {
     String userId,
   ) async {
     await usersCollection.doc(userId).update({
-      "isOnline": true,
-      "lastSeen":
+      'isOnline': true,
+      'lastSeen':
           FieldValue.serverTimestamp(),
     });
   }
@@ -195,8 +236,8 @@ class FirestoreService {
     String userId,
   ) async {
     await usersCollection.doc(userId).update({
-      "isOnline": false,
-      "lastSeen":
+      'isOnline': false,
+      'lastSeen':
           FieldValue.serverTimestamp(),
     });
   }
@@ -210,7 +251,7 @@ class FirestoreService {
     required bool typing,
   }) async {
     await usersCollection.doc(userId).update({
-      "isTyping": typing,
+      'isTyping': typing,
     });
   }
 }

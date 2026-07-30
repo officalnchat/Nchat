@@ -4,13 +4,15 @@ class ChatInputBar extends StatefulWidget {
   final TextEditingController controller;
   final ValueChanged<bool> onTypingChanged;
   final VoidCallback onSend;
+  final VoidCallback onImageTap;
 
-  const ChatInputBar({
-    super.key,
-    required this.controller,
-    required this.onTypingChanged,
-    required this.onSend,
-  });
+ const ChatInputBar({
+  super.key,
+  required this.controller,
+  required this.onTypingChanged,
+  required this.onSend,
+  required this.onImageTap,
+});
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -89,12 +91,12 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     ),
 
                     IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.attach_file,
-                        color: Colors.grey,
-                      ),
-                    ),
+  onPressed: widget.onImageTap,
+  icon: const Icon(
+    Icons.attach_file,
+    color: Colors.grey,
+  ),
+),
 
                     IconButton(
                       onPressed: () {},
