@@ -8,6 +8,10 @@ class MessageBubble extends StatelessWidget {
   final bool isMe;
   final int status;
 
+  final bool isStarred;
+
+  final String forwarded;
+
   final String replyMessage;
   final String replyType;
 
@@ -22,6 +26,8 @@ class MessageBubble extends StatelessWidget {
     required this.time,
     required this.isMe,
     required this.status,
+    required this.isStarred,
+    required this.forwarded,
     required this.replyMessage,
     required this.replyType,
     this.onSwipeReply,
@@ -93,6 +99,38 @@ class MessageBubble extends StatelessWidget {
               crossAxisAlignment:
                   CrossAxisAlignment.end,
               children: [
+                if (forwarded == "true")
+  Padding(
+    padding: const EdgeInsets.only(
+      bottom: 4,
+    ),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        "↪ Forwarded",
+        style: TextStyle(
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.bold,
+          color: isMe
+              ? Colors.white70
+              : Colors.black54,
+        ),
+      ),
+    ),
+  ),
+                if (isStarred)
+  const Align(
+    alignment: Alignment.centerLeft,
+    child: Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: Icon(
+        Icons.star,
+        color: Colors.amber,
+        size: 16,
+      ),
+    ),
+  ),
 
                 if (replyMessage.isNotEmpty)
                   Container(

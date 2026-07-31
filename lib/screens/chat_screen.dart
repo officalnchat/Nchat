@@ -251,6 +251,11 @@ if (chatController.searchController.text.isNotEmpty) {
   isMe: message["isMe"],
   status: message["status"],
 
+  isStarred: message["isStarred"],
+
+  forwarded: message["forwarded"],
+
+
   replyMessage: message["replyMessage"],
 replyType: message["replyType"],
 
@@ -275,6 +280,53 @@ onLongPress: () async {
                 Navigator.pop(context, "reply");
               },
             ),
+            ListTile(
+  leading: const Icon(
+    Icons.forward,
+    color: Colors.blue,
+  ),
+  title: const Text("Forward"),
+  onTap: () {
+    Navigator.pop(
+      context,
+      "forward",
+    );
+  },
+),
+            ListTile(
+  leading: Icon(
+    message["isStarred"]
+        ? Icons.star
+        : Icons.star_border,
+    color: Colors.amber,
+  ),
+  title: Text(
+    message["isStarred"]
+        ? "Unstar Message"
+        : "Star Message",
+  ),
+  onTap: () {
+    Navigator.pop(
+      context,
+      "star",
+    );
+  },
+),
+
+             ListTile(
+  leading: const Icon(
+    Icons.delete_outline,
+    color: Colors.orange,
+  ),
+  title: const Text("Delete for Me"),
+  onTap: () {
+    Navigator.pop(
+      context,
+      "deleteForMe",
+    );
+  },
+),
+
             ListTile(
               leading: const Icon(
                 Icons.delete,
@@ -304,11 +356,34 @@ onLongPress: () async {
     });
   }
 
-  if (action == "delete") {
+if (action == "forward") {
+  setState(() {
+    chatController.setForwardMessage(
+      message,
+    );
+  });
+}
+
+
+if (action == "star") {
+  await chatController.toggleStarMessage(
+    message["docId"],
+    message["isStarred"],
+  );
+}
+
+ if (action == "deleteForMe") {
+  await chatController.deleteMessageForMe(
+    message["docId"],
+  );
+}
+
+if (action == "delete") {
   await chatController.deleteMessage(
     message["docId"],
   );
 }
+
 },
 );
                   },
@@ -317,6 +392,58 @@ onLongPress: () async {
             ),
           ),
 
+if (chatController.forwardMessage != null)
+  Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.blue.shade50,
+      border: const Border(
+        left: BorderSide(
+          color: Colors.blue,
+          width: 4,
+        ),
+      ),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Forward Message",
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                chatController.forwardMessage!["type"] == "image"
+                    ? "📷 Photo"
+                    : chatController.forwardMessage!["text"],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            setState(() {
+              chatController.clearForwardMessage();
+            });
+          },
+          icon: const Icon(Icons.close),
+        ),
+      ],
+    ),
+  ),
 if (chatController.replyMessage != null)
   Container(
     width: double.infinity,

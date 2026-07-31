@@ -54,6 +54,22 @@ void clearReplyMessage() {
   replyMessage = null;
 }
 
+// ===========================
+// Forward
+// ===========================
+
+Map<String, dynamic>? forwardMessage;
+
+void setForwardMessage(
+  Map<String, dynamic> message,
+) {
+  forwardMessage = message;
+}
+
+void clearForwardMessage() {
+  forwardMessage = null;
+}
+
   String? currentUserId;
 
   Future<String> getChatId() async {
@@ -137,9 +153,15 @@ void clearReplyMessage() {
   void loadMessages(
     QuerySnapshot snapshot,
   ) {
-    messages = snapshot.docs.map((doc) {
+    messages = snapshot.docs
+    .map((doc) {
       final data =
           doc.data() as Map<String, dynamic>;
+
+      if ((data["deletedFor"] ?? [])
+          .contains(currentUserId)) {
+        return null;
+      }
 
       return {
         "docId": doc.id,
@@ -155,14 +177,21 @@ void clearReplyMessage() {
         "status":
             data["status"] ?? 1,
 
-            "replyMessage":
-      data["replyMessage"] ?? "",
+            "isStarred":
+    data["isStarred"] ?? false,
 
-       "replyType":
-      data["replyType"] ?? "",
-      
+          "forwarded":
+    data["forwarded"] ?? "",
+
+    "replyMessage":
+            data["replyMessage"] ?? "",
+
+        "replyType":
+            data["replyType"] ?? "",
       };
-    }).toList();
+    })
+    .whereType<Map<String, dynamic>>()
+    .toList();
     
     filteredMessages = List.from(messages);
 
@@ -294,6 +323,26 @@ void searchMessages(String query) {
     final chatId =
         await getChatId();
 
+  if (forwardMessage != null) {
+  await _firestoreService.sendMessage(
+    chatId: chatId,
+    senderId: currentUserId!,
+    receiverId: receiverId,
+    message: forwardMessage!["text"],
+
+    forwarded: "true",
+  );
+
+  await setTyping(false);
+
+  messageController.clear();
+
+  clearForwardMessage();
+
+  refresh();
+
+  return;
+}
    await _firestoreService.sendMessage(
   chatId: chatId,
   senderId: currentUserId!,
@@ -305,6 +354,8 @@ void searchMessages(String query) {
 
   replyType:
       replyMessage?["type"],
+
+      forwarded: "",
 );
 
    await setTyping(false);
@@ -357,6 +408,8 @@ refresh();
 
   replyType:
       replyMessage?["type"],
+
+      forwarded: "",
 );
 
   await setTyping(false);
@@ -381,17 +434,54 @@ Future<void> deleteMessage(
   );
 }
 
-    // ===========================
-  // Dispose
-  // ===========================
+// ===========================
+// Delete For Me
+// ===========================
 
-  void dispose() {
-    setTyping(false);
+Future<void> deleteMessageForMe(
+  String docId,
+) async {
+  final chatId = await getChatId();
 
-    messageController.dispose();
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
 
-    scrollController.dispose();
-    
-    searchController.dispose();
-  }
+  await _firestoreService.deleteMessageForMe(
+    chatId: chatId,
+    messageId: docId,
+    userId: currentUserId!,
+  );
+}
+
+// ===========================
+// Star / Unstar Message
+// ===========================
+
+Future<void> toggleStarMessage(
+  String docId,
+  bool isStarred,
+) async {
+  final chatId = await getChatId();
+
+  await _firestoreService.toggleStarMessage(
+    chatId: chatId,
+    messageId: docId,
+    isStarred: isStarred,
+  );
+}
+
+
+// ===========================
+// Dispose
+// ===========================
+
+void dispose() {
+  setTyping(false);
+
+  messageController.dispose();
+
+  scrollController.dispose();
+
+  searchController.dispose();
+}
 }

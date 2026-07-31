@@ -95,6 +95,7 @@ class FirestoreService {
 
   String? replyMessage,
   String? replyType,
+  String? forwarded,
 })
   async {
     await chatsCollection
@@ -114,9 +115,14 @@ class FirestoreService {
       'status': 1,
 
       'type': 'text',
+
+      'isStarred': false,
       
       'replyMessage': replyMessage ?? '',
 'replyType': replyType ?? '',
+
+       'forwarded': forwarded ?? '',
+
     });
   }
 
@@ -132,6 +138,7 @@ class FirestoreService {
 
   String? replyMessage,
   String? replyType,
+  String? forwarded,
 }) async {
     await chatsCollection
         .doc(chatId)
@@ -156,8 +163,13 @@ class FirestoreService {
 
       'type': 'image',
 
+      'isStarred': false,
+
       'replyMessage': replyMessage ?? '',
 'replyType': replyType ?? '',
+
+      'forwarded': forwarded ?? '',
+
     });
   }
 
@@ -280,5 +292,37 @@ Future<void> deleteMessage({
       .collection("messages")
       .doc(messageId)
       .delete();
+}
+Future<void> deleteMessageForMe({
+  required String chatId,
+  required String messageId,
+  required String userId,
+}) async {
+  await chatsCollection
+      .doc(chatId)
+      .collection("messages")
+      .doc(messageId)
+      .update({
+    "deletedFor": FieldValue.arrayUnion([
+      userId,
+    ]),
+  });
+}
+// ===========================
+// Star / Unstar Message
+// ===========================
+
+Future<void> toggleStarMessage({
+  required String chatId,
+  required String messageId,
+  required bool isStarred,
+}) async {
+  await chatsCollection
+      .doc(chatId)
+      .collection("messages")
+      .doc(messageId)
+      .update({
+    "isStarred": !isStarred,
+  });
 }
 }
