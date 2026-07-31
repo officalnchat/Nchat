@@ -267,4 +267,18 @@ class FirestoreService {
       'isTyping': typing,
     });
   }
+  // ===========================
+// Delete Message
+// ===========================
+
+Future<void> deleteMessage({
+  required String chatId,
+  required String messageId,
+}) async {
+  await chatsCollection
+      .doc(chatId)
+      .collection("messages")
+      .doc(messageId)
+      .delete();
+}
 }

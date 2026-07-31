@@ -255,10 +255,61 @@ if (chatController.searchController.text.isNotEmpty) {
 replyType: message["replyType"],
 
   onSwipeReply: () {
+  setState(() {
+    chatController.setReplyMessage(message);
+  });
+},
+
+onLongPress: () async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    builder: (context) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.reply),
+              title: const Text("Reply"),
+              onTap: () {
+                Navigator.pop(context, "reply");
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              title: const Text("Delete for Everyone"),
+              onTap: () {
+                Navigator.pop(context, "delete");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text("Cancel"),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  if (action == "reply") {
     setState(() {
       chatController.setReplyMessage(message);
     });
-  },
+  }
+
+  if (action == "delete") {
+  await chatController.deleteMessage(
+    message["docId"],
+  );
+}
+},
 );
                   },
                 );

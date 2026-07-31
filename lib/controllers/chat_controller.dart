@@ -365,6 +365,22 @@ clearReplyMessage();
 
 refresh();
   }
+
+  // ===========================
+// Delete Message
+// ===========================
+
+Future<void> deleteMessage(
+  String docId,
+) async {
+  final chatId = await getChatId();
+
+  await _firestoreService.deleteMessage(
+    chatId: chatId,
+    messageId: docId,
+  );
+}
+
     // ===========================
   // Dispose
   // ===========================
