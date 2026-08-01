@@ -46,9 +46,9 @@ class StorageService {
           await snapshot.ref.getDownloadURL();
 
       return downloadUrl;
-    } catch (e) {
+   } catch (e) {
   print("IMAGE UPLOAD ERROR: $e");
-  rethrow;
+  return null;
 }
   }
 }

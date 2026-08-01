@@ -32,12 +32,29 @@ class AuthService {
 
   // Logout (Future Use)
   Future<void> logout() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.remove(_isLoggedInKey);
+  await prefs.remove("profile_created");
+
+  // User ID remove nahi kar rahe.
+  // Future Firebase Auth me signOut add karenge.
+}
+    // Check Profile Created
+  Future<bool> hasUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.remove(_isLoggedInKey);
+    return prefs.getBool("profile_created") ?? false;
+  }
 
-    // User ID remove nahi kar rahe.
-    // Future me Firebase Auth aane par
-    // yahan signOut() bhi add karenge.
+
+  // Save Profile Created Status
+  Future<void> setUserProfileCreated(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setBool(
+      "profile_created",
+      value,
+    );
   }
 }

@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
 import 'home_screen.dart';
 import 'welcome_screen.dart';
+import 'profile_setup_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -26,17 +27,30 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> checkLogin() async {
     await Future.delayed(const Duration(seconds: 2));
 
-    final bool isLoggedIn = await authService.isLoggedIn();
+    final bool isLoggedIn =
+        await authService.isLoggedIn();
 
-    if (!mounted) return;
+    final bool hasProfile =
+        await authService.hasUserProfile();
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            isLoggedIn ? HomeScreen() : const WelcomeScreen(),
-      ),
-    );
+if (!mounted) return;
+
+Widget nextScreen;
+
+if (!isLoggedIn) {
+  nextScreen = const WelcomeScreen();
+} else if (!hasProfile) {
+  nextScreen = const ProfileSetupScreen();
+} else {
+  nextScreen = HomeScreen();
+}
+
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (_) => nextScreen,
+  ),
+);
   }
 
   @override

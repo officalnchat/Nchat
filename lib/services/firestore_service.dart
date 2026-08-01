@@ -136,6 +136,8 @@ class FirestoreService {
   required String receiverId,
   required String imageUrl,
 
+  String? caption,
+
   String? replyMessage,
   String? replyType,
   String? forwarded,
@@ -148,7 +150,7 @@ class FirestoreService {
       'receiverId': receiverId,
 
       // No text for image messages
-      'message': '',
+      'message': caption ?? '',
 
       // Image URL
       'imageUrl': imageUrl,
@@ -323,6 +325,23 @@ Future<void> toggleStarMessage({
       .doc(messageId)
       .update({
     "isStarred": !isStarred,
+  });
+}
+ // ===========================
+// Message Reaction
+// ===========================
+
+Future<void> setReaction({
+  required String chatId,
+  required String messageId,
+  required String emoji,
+}) async {
+  await chatsCollection
+      .doc(chatId)
+      .collection("messages")
+      .doc(messageId)
+      .update({
+    "reaction": emoji,
   });
 }
 }

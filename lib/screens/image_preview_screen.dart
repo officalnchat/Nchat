@@ -38,11 +38,12 @@ class _ImagePreviewScreenState
   bool isSending = false;
 
   String? currentUserId;
-    Future<void> sendImage() async {
-    setState(() {
-      isSending = true;
-    });
+   Future<void> sendImage() async {
+  setState(() {
+    isSending = true;
+  });
 
+  try {
     currentUserId =
         await _firestoreService.getCurrentUserId();
 
@@ -53,11 +54,16 @@ class _ImagePreviewScreenState
 
     final chatId = ids.join("_");
 
-    final String? imageUrl =
-        await _storageService.uploadChatImage(
-      imageFile: widget.imageFile,
-      chatId: chatId,
-    );
+    String? imageUrl;
+
+    try {
+      imageUrl = await _storageService.uploadChatImage(
+        imageFile: widget.imageFile,
+        chatId: chatId,
+      );
+    } catch (e) {
+      imageUrl = null;
+    }
 
     if (imageUrl != null) {
       await _firestoreService.sendImageMessage(
@@ -65,15 +71,32 @@ class _ImagePreviewScreenState
         senderId: currentUserId!,
         receiverId: widget.receiverId,
         imageUrl: imageUrl,
-        caption:
-            captionController.text.trim(),
+        caption: captionController.text.trim(),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Image storage is not available currently",
+          ),
+        ),
       );
     }
 
-    if (mounted) {
-      Navigator.pop(context);
-    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+      ),
+    );
   }
+
+  if (mounted) {
+    setState(() {
+      isSending = false;
+    });
+  }
+}
     @override
   Widget build(BuildContext context) {
     return Scaffold(

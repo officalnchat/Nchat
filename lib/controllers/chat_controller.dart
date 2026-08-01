@@ -183,6 +183,9 @@ void clearForwardMessage() {
           "forwarded":
     data["forwarded"] ?? "",
 
+    "reaction":
+    data["reaction"] ?? "",
+
     "replyMessage":
             data["replyMessage"] ?? "",
 
@@ -315,15 +318,23 @@ void searchMessages(String query) {
     final text =
         messageController.text.trim();
 
+        print("STEP 1");
+
     if (text.isEmpty) return;
 
     currentUserId ??=
         await _firestoreService.getCurrentUserId();
 
+        print("STEP 2");
+
     final chatId =
         await getChatId();
 
+        print("STEP 3 - ChatId: $chatId");
+
   if (forwardMessage != null) {
+    print("STEP 4 - About to call FirestoreService.sendMessage()");
+
   await _firestoreService.sendMessage(
     chatId: chatId,
     senderId: currentUserId!,
@@ -332,6 +343,7 @@ void searchMessages(String query) {
 
     forwarded: "true",
   );
+  print("STEP 5 - FirestoreService.sendMessage() completed");
 
   await setTyping(false);
 
@@ -467,6 +479,23 @@ Future<void> toggleStarMessage(
     chatId: chatId,
     messageId: docId,
     isStarred: isStarred,
+  );
+}
+
+// ===========================
+// Message Reaction
+// ===========================
+
+Future<void> setReaction(
+  String docId,
+  String emoji,
+) async {
+  final chatId = await getChatId();
+
+  await _firestoreService.setReaction(
+    chatId: chatId,
+    messageId: docId,
+    emoji: emoji,
   );
 }
 

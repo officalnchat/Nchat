@@ -78,14 +78,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       final userId = await authService.getUserId();
 
-      String photoUrl = "";
+      String photoUrl = ""; 
 
-      if (profileImage != null) {
-        photoUrl = await firestoreService.uploadProfileImage(
-          userId: userId,
-          imageFile: profileImage!,
-        );
-      }
+ if (profileImage != null) {
+  try {
+    photoUrl = await firestoreService.uploadProfileImage(
+      userId: userId,
+      imageFile: profileImage!,
+    );
+  } catch (e) {
+    // Storage available nahi hai to bhi profile save hoga
+    photoUrl = "";
+  }
+}
 
       await firestoreService.saveUser(
         userId: userId,
@@ -93,6 +98,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         about: about,
         photoUrl: photoUrl,
       );
+
+      await authService.setUserProfileCreated(true);
+
       await authService.setLoggedIn(true);
 
       if (!mounted) return;

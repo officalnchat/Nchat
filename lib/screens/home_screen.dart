@@ -12,61 +12,12 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with WidgetsBindingObserver {
-  final FirestoreService firestoreService = FirestoreService();
+class _HomeScreenState extends State<HomeScreen> {
 
-  String? currentUserId;
+  final FirestoreService firestoreService =
+      FirestoreService();
 
-  @override
-  void initState() {
-    super.initState();
 
-    WidgetsBinding.instance.addObserver(this);
-
-    initializePresence();
-  }
-
-  Future<void> initializePresence() async {
-    currentUserId =
-        await firestoreService.getCurrentUserId();
-
-    await firestoreService.setUserOnline(
-      currentUserId!,
-    );
-  }
-
-  @override
-  void didChangeAppLifecycleState(
-      AppLifecycleState state) {
-    if (currentUserId == null) return;
-
-    if (state == AppLifecycleState.resumed) {
-      firestoreService.setUserOnline(
-        currentUserId!,
-      );
-    }
-
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      firestoreService.setUserOffline(
-        currentUserId!,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-
-    if (currentUserId != null) {
-      firestoreService.setUserOffline(
-        currentUserId!,
-      );
-    }
-
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,13 +105,12 @@ class _HomeScreenState extends State<HomeScreen>
                       users[index].data()
                           as Map<String, dynamic>;
 
-                  return ChatTile(
-                    userId:
-                        data["userId"] ?? "",
-                    name: data["name"] ?? "",
-                    message:
-                        data["about"] ?? "",
-                  );
+                    return ChatTile(
+                     userId: data["userId"] ?? "",
+                      name: data["name"] ?? "",
+                       message: data["about"] ?? "",
+                       photoUrl: data["photoUrl"] ?? "",
+                   );
                 },
               );
             },
@@ -186,21 +136,28 @@ class ChatTile extends StatelessWidget {
   final String userId;
   final String name;
   final String message;
+    final String photoUrl;
 
   const ChatTile({
-    super.key,
-    required this.userId,
-    required this.name,
-    required this.message,
-  });
+  super.key,
+  required this.userId,
+  required this.name,
+  required this.message,
+  required this.photoUrl,
+});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const CircleAvatar(
-        radius: 28,
-        child: Icon(Icons.person),
-      ),
+      leading: CircleAvatar(
+  radius: 28,
+  backgroundImage: photoUrl.isNotEmpty
+      ? NetworkImage(photoUrl)
+      : null,
+  child: photoUrl.isEmpty
+      ? const Icon(Icons.person)
+      : null,
+),
       title: Text(
         name,
         style: const TextStyle(

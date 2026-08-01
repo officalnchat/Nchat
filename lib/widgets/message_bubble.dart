@@ -12,6 +12,8 @@ class MessageBubble extends StatelessWidget {
 
   final String forwarded;
 
+  final String reaction;
+
   final String replyMessage;
   final String replyType;
 
@@ -28,6 +30,7 @@ class MessageBubble extends StatelessWidget {
     required this.status,
     required this.isStarred,
     required this.forwarded,
+    required this.reaction,
     required this.replyMessage,
     required this.replyType,
     this.onSwipeReply,
@@ -172,15 +175,52 @@ class MessageBubble extends StatelessWidget {
                   ),
 
                 if (type == "image")
-                  ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    child: Image.network(
-                      imageUrl,
-                      width: 220,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+  if (imageUrl.isNotEmpty)
+    ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        imageUrl,
+        width: 220,
+        fit: BoxFit.cover,
+        errorBuilder: (
+          context,
+          error,
+          stackTrace,
+        ) {
+          return Container(
+            width: 220,
+            height: 180,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius:
+                  BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.broken_image,
+              size: 50,
+              color: Colors.grey,
+            ),
+          );
+        },
+      ),
+    )
+  else
+    Container(
+      width: 220,
+      height: 180,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius:
+            BorderRadius.circular(12),
+      ),
+      child: const Icon(
+        Icons.image_not_supported,
+        size: 50,
+        color: Colors.grey,
+      ),
+    ),
 
                 if (type == "text")
                   Align(
@@ -195,6 +235,22 @@ class MessageBubble extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  if (reaction.isNotEmpty)
+  Align(
+    alignment: Alignment.centerLeft,
+    child: Padding(
+      padding: const EdgeInsets.only(
+        top: 4,
+      ),
+      child: Text(
+        reaction,
+        style: const TextStyle(
+          fontSize: 20,
+        ),
+      ),
+    ),
+  ),
 
                 const SizedBox(height: 5),
 

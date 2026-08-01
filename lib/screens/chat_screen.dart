@@ -111,10 +111,30 @@ void dispose() {
 
             return Row(
               children: [
-                const CircleAvatar(
-                  radius: 20,
-                  child: Icon(Icons.person),
-                ),
+                CircleAvatar(
+  radius: 20,
+  backgroundImage: (snapshot.hasData &&
+          snapshot.data!.exists &&
+          ((snapshot.data!.data()
+                      as Map<String, dynamic>)["photoUrl"] ??
+                  "")
+              .toString()
+              .isNotEmpty)
+      ? NetworkImage(
+          (snapshot.data!.data()
+                  as Map<String, dynamic>)["photoUrl"],
+        )
+      : null,
+  child: (snapshot.hasData &&
+          snapshot.data!.exists &&
+          ((snapshot.data!.data()
+                      as Map<String, dynamic>)["photoUrl"] ??
+                  "")
+              .toString()
+              .isNotEmpty)
+      ? null
+      : const Icon(Icons.person),
+),
 
                 const SizedBox(width: 10),
 
@@ -255,6 +275,8 @@ if (chatController.searchController.text.isNotEmpty) {
 
   forwarded: message["forwarded"],
 
+  reaction: message["reaction"],
+
 
   replyMessage: message["replyMessage"],
 replyType: message["replyType"],
@@ -273,6 +295,37 @@ onLongPress: () async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Padding(
+  padding: const EdgeInsets.symmetric(
+    vertical: 10,
+  ),
+  child: Row(
+    mainAxisAlignment:
+        MainAxisAlignment.spaceEvenly,
+    children: [
+      _reactionButton(
+        context,
+        "❤️",
+      ),
+      _reactionButton(
+        context,
+        "😂",
+      ),
+      _reactionButton(
+        context,
+        "😮",
+      ),
+      _reactionButton(
+        context,
+        "😢",
+      ),
+      _reactionButton(
+        context,
+        "👍",
+      ),
+    ],
+  ),
+),
             ListTile(
               leading: const Icon(Icons.reply),
               title: const Text("Reply"),
@@ -349,6 +402,17 @@ onLongPress: () async {
       );
     },
   );
+  if (action == "❤️" ||
+    action == "😂" ||
+    action == "😮" ||
+    action == "😢" ||
+    action == "👍") {
+  await chatController.setReaction(
+    message["docId"],
+    action!,
+  );
+  return;
+}
 
   if (action == "reply") {
     setState(() {
@@ -526,4 +590,30 @@ if (chatController.replyMessage != null)
       ),
     );
   } 
+   Widget _reactionButton(
+    BuildContext context,
+    String emoji,
+  ) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(
+          context,
+          emoji,
+        );
+      },
+      borderRadius:
+          BorderRadius.circular(20),
+      child: Padding(
+        padding:
+            const EdgeInsets.all(8),
+        child: Text(
+          emoji,
+          style:
+              const TextStyle(
+            fontSize: 28,
+          ),
+        ),
+      ),
+    );
+  }
 }
