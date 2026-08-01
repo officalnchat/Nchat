@@ -585,6 +585,21 @@ if (chatController.replyMessage != null)
       refresh,
     );
   },
+ onMicLongPress: () async {
+  await chatController.startRecording();
+},
+
+onMicLongPressEnd: () async {
+  final path =
+      await chatController.stopRecording();
+
+  print("🎵 Audio Saved: $path");
+
+  await chatController.sendVoiceMessage(
+    context,
+    refresh,
+  );
+},
 ),
         ],
       ),

@@ -1,7 +1,10 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
@@ -24,6 +27,46 @@ class ChatController {
 
   final StorageService _storageService =
       StorageService();
+
+      // ===========================
+// Voice Recording
+// ===========================
+
+final AudioRecorder audioRecorder = AudioRecorder();
+
+bool isRecording = false;
+
+String? audioPath;
+
+// Start Recording
+Future<void> startRecording() async {
+  if (await audioRecorder.hasPermission()) {
+    final dir = await getTemporaryDirectory();
+
+    final path =
+        "${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a";
+
+    await audioRecorder.start(
+      const RecordConfig(),
+      path: path,
+    );
+
+    isRecording = true;
+
+    print("🎤 Recording Started");
+  } else {
+    print("❌ Microphone Permission Denied");
+  }
+}
+
+// Stop Recording
+Future<String?> stopRecording() async {
+  audioPath = await audioRecorder.stop();
+
+  isRecording = false;
+
+  return audioPath;
+}
 
   List<Map<String, dynamic>> messages = [];
   
@@ -432,6 +475,59 @@ refresh();
   }
 
   // ===========================
+// Send Voice
+// ===========================
+
+Future<void> sendVoiceMessage(
+  BuildContext context,
+  VoidCallback refresh,
+) async {
+  if (audioPath == null) return;
+
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
+
+  final chatId = await getChatId();
+
+  final ref = FirebaseStorage.instance
+      .ref()
+      .child("chat_audio")
+      .child(
+        "${DateTime.now().millisecondsSinceEpoch}.m4a",
+      );
+
+  await ref.putFile(File(audioPath!));
+
+  final audioUrl =
+      await ref.getDownloadURL();
+
+  await _firestoreService.sendVoiceMessage(
+    chatId: chatId,
+    senderId: currentUserId!,
+    receiverId: receiverId,
+    audioUrl: audioUrl,
+
+    replyMessage:
+        replyMessage?["text"],
+
+    replyType:
+        replyMessage?["type"],
+
+    forwarded: "",
+  );
+
+  await setTyping(false);
+
+  clearReplyMessage();
+
+  clearForwardMessage();
+
+  audioPath = null;
+
+  refresh();
+}
+
+  // ===========================
 // Delete Message
 // ===========================
 
@@ -498,6 +594,7 @@ Future<void> setReaction(
     emoji: emoji,
   );
 }
+
 
 
 // ===========================

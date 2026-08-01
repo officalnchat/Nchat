@@ -174,6 +174,44 @@ class FirestoreService {
 
     });
   }
+  Future<void> sendVoiceMessage({
+  required String chatId,
+  required String senderId,
+  required String receiverId,
+  required String audioUrl,
+
+  String? replyMessage,
+  String? replyType,
+  String? forwarded,
+}) async {
+  await chatsCollection
+      .doc(chatId)
+      .collection("messages")
+      .add({
+    "senderId": senderId,
+    "receiverId": receiverId,
+
+    "message": "",
+    "imageUrl": "",
+    "audioUrl": audioUrl,
+
+    "type": "audio",
+
+    "timestamp": FieldValue.serverTimestamp(),
+
+    "status": 1,
+
+    "isStarred": false,
+
+    "forwarded": forwarded ?? "",
+
+    "reaction": "",
+
+    "replyMessage": replyMessage ?? "",
+
+    "replyType": replyType ?? "",
+  });
+}
 
   // ===========================
   // Messages Stream

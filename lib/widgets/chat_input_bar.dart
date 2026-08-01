@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 class ChatInputBar extends StatefulWidget {
@@ -5,6 +6,8 @@ class ChatInputBar extends StatefulWidget {
   final ValueChanged<bool> onTypingChanged;
   final VoidCallback onSend;
   final VoidCallback onImageTap;
+  final VoidCallback onMicLongPress;
+  final VoidCallback onMicLongPressEnd;
 
  const ChatInputBar({
   super.key,
@@ -12,6 +15,8 @@ class ChatInputBar extends StatefulWidget {
   required this.onTypingChanged,
   required this.onSend,
   required this.onImageTap,
+  required this.onMicLongPress,
+   required this.onMicLongPressEnd,
 });
 
   @override
@@ -20,6 +25,12 @@ class ChatInputBar extends StatefulWidget {
 
 class _ChatInputBarState extends State<ChatInputBar> {
   bool isTyping = false;
+
+  bool isRecording = false;
+
+  int recordingSeconds = 0;
+
+  Timer? recordingTimer;
 
   @override
   void initState() {
@@ -39,9 +50,36 @@ class _ChatInputBarState extends State<ChatInputBar> {
       setState(() {});
     }
   }
+  void startRecordingTimer() {
+  recordingSeconds = 0;
+
+  recordingTimer?.cancel();
+
+  recordingTimer = Timer.periodic(
+    const Duration(seconds: 1),
+    (_) {
+      if (!mounted) return;
+
+      setState(() {
+        recordingSeconds++;
+      });
+    },
+  );
+}
+
+void stopRecordingTimer() {
+  recordingTimer?.cancel();
+
+  if (!mounted) return;
+
+  setState(() {
+    recordingSeconds = 0;
+  });
+}
 
   @override
   void dispose() {
+    recordingTimer?.cancel();
     widget.controller.removeListener(_typingListener);
     super.dispose();
   }
@@ -77,18 +115,46 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     ),
 
                     Expanded(
-                      child: TextField(
-                        controller: widget.controller,
-                        minLines: 1,
-                        maxLines: 5,
-                        textCapitalization:
-                            TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: "Type a message",
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
+  child: isRecording
+      ? Row(
+          children: [
+            const Icon(
+              Icons.mic,
+              color: Colors.red,
+            ),
+
+            const SizedBox(width: 8),
+
+            const Text(
+              "Recording...",
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const Spacer(),
+
+            Text(
+              "${recordingSeconds}s",
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        )
+      : TextField(
+          controller: widget.controller,
+          minLines: 1,
+          maxLines: 5,
+          textCapitalization:
+              TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: "Type a message",
+            border: InputBorder.none,
+          ),
+        ),
+),
 
                     IconButton(
   onPressed: widget.onImageTap,
@@ -113,22 +179,51 @@ class _ChatInputBarState extends State<ChatInputBar> {
             const SizedBox(width: 8),
 
             CircleAvatar(
-              radius: 26,
-              backgroundColor: Colors.green,
-              child: IconButton(
-                onPressed: () {
-                  if (isTyping) {
-                    widget.onSend();
-                  }
-                },
-                icon: Icon(
-                  isTyping
-                      ? Icons.send
-                      : Icons.mic,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+  radius: 26,
+  backgroundColor: isTyping
+    ? Colors.green
+    : isRecording
+        ? Colors.red
+        : Colors.blue,
+  child: GestureDetector(
+  onLongPress: () {
+  if (!isTyping) {
+    setState(() {
+      isRecording = true;
+    });
+
+    startRecordingTimer();
+
+    widget.onMicLongPress();
+  }
+},
+
+ onLongPressEnd: (_) {
+  if (!isTyping) {
+    setState(() {
+      isRecording = false;
+    });
+
+    stopRecordingTimer();
+
+    widget.onMicLongPressEnd();
+  }
+},
+    child: IconButton(
+      onPressed: () {
+        if (isTyping) {
+          widget.onSend();
+        }
+      },
+      icon: Icon(
+        isTyping
+            ? Icons.send
+            : Icons.mic_none,
+        color: Colors.white,
+      ),
+    ),
+  ),
+),
           ],
         ),
       ),
