@@ -210,6 +210,9 @@ void clearForwardMessage() {
         "docId": doc.id,
         "text": data["message"] ?? "",
         "imageUrl": data["imageUrl"] ?? "",
+
+        "audioUrl": data["audioUrl"] ?? "",
+        
         "type": data["type"] ?? "text",
         "isMe":
             data["senderId"] == currentUserId,

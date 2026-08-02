@@ -266,6 +266,7 @@ if (chatController.searchController.text.isNotEmpty) {
                     return MessageBubble(
   message: message["text"],
   imageUrl: message["imageUrl"],
+  audioUrl: message["audioUrl"],
   type: message["type"],
   time: message["time"],
   isMe: message["isMe"],

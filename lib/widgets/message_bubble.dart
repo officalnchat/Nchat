@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends StatefulWidget {
   final String message;
   final String imageUrl;
   final String type;
   final String time;
+  final String audioUrl;
   final bool isMe;
   final int status;
 
@@ -33,9 +35,97 @@ class MessageBubble extends StatelessWidget {
     required this.reaction,
     required this.replyMessage,
     required this.replyType,
+    required this.audioUrl,
     this.onSwipeReply,
     this.onLongPress,
   });
+
+  @override
+State<MessageBubble> createState() =>
+    _MessageBubbleState();
+}
+
+class _MessageBubbleState
+    extends State<MessageBubble> {
+
+      final AudioPlayer _audioPlayer = AudioPlayer();
+
+bool _isPlaying = false;
+
+Duration _duration = Duration.zero;
+
+Duration _position = Duration.zero;
+
+bool _loaded = false;
+
+@override
+void initState() {
+  super.initState();
+
+  _audioPlayer.durationStream.listen((duration) {
+    if (!mounted || duration == null) return;
+
+    setState(() {
+      _duration = duration;
+    });
+  });
+
+  _audioPlayer.positionStream.listen((position) {
+    if (!mounted) return;
+
+    setState(() {
+      _position = position;
+    });
+  });
+
+  _audioPlayer.playerStateStream.listen((state) {
+    if (!mounted) return;
+
+   if (state.processingState == ProcessingState.completed) {
+  _loaded = false;
+
+  _audioPlayer.seek(Duration.zero);
+
+  if (!mounted) return;
+
+  setState(() {
+  _position = Duration.zero;
+  _isPlaying = false;
+});
+
+  return;
+}
+    setState(() {
+      _isPlaying = state.playing;
+    });
+  });
+}
+
+Future<void> _toggleAudio() async {
+  try {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+      return;
+    }
+
+    if (!_loaded) {
+      await _audioPlayer.setUrl(widget.audioUrl);
+      _loaded = true;
+    }
+
+    await _audioPlayer.play();
+  } catch (e) {
+    debugPrint("Audio Error: $e");
+  }
+}
+
+@override
+void dispose() {
+  _audioPlayer.stop();
+  _audioPlayer.dispose();
+  super.dispose();
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +134,7 @@ class MessageBubble extends StatelessWidget {
       direction: DismissDirection.startToEnd,
 
       confirmDismiss: (direction) async {
-        onSwipeReply?.call();
+        widget.onSwipeReply?.call();
         return false;
       },
 
@@ -60,9 +150,9 @@ class MessageBubble extends StatelessWidget {
       ),
 
       child: GestureDetector(
-        onLongPress: onLongPress,
+        onLongPress: widget.onLongPress,
         child: Align(
-          alignment: isMe
+          alignment: widget.isMe
               ? Alignment.centerRight
               : Alignment.centerLeft,
 
@@ -82,7 +172,7 @@ class MessageBubble extends StatelessWidget {
             ),
 
             decoration: BoxDecoration(
-              color: isMe
+              color: widget.isMe
                   ? Colors.green.shade400
                   : Colors.grey.shade300,
 
@@ -90,10 +180,10 @@ class MessageBubble extends StatelessWidget {
                 topLeft: const Radius.circular(16),
                 topRight: const Radius.circular(16),
                 bottomLeft: Radius.circular(
-                  isMe ? 16 : 0,
+                  widget.isMe ? 16 : 0,
                 ),
-                bottomRight: Radius.circular(
-                  isMe ? 0 : 16,
+                   bottomRight: Radius.circular(
+                    widget.isMe ? 0 : 16,
                 ),
               ),
             ),
@@ -102,7 +192,7 @@ class MessageBubble extends StatelessWidget {
               crossAxisAlignment:
                   CrossAxisAlignment.end,
               children: [
-                if (forwarded == "true")
+               if (widget.forwarded == "true")
   Padding(
     padding: const EdgeInsets.only(
       bottom: 4,
@@ -115,14 +205,14 @@ class MessageBubble extends StatelessWidget {
           fontSize: 12,
           fontStyle: FontStyle.italic,
           fontWeight: FontWeight.bold,
-          color: isMe
+          color: widget.isMe
               ? Colors.white70
               : Colors.black54,
         ),
       ),
     ),
   ),
-                if (isStarred)
+                if (widget.isStarred)
   const Align(
     alignment: Alignment.centerLeft,
     child: Padding(
@@ -135,7 +225,7 @@ class MessageBubble extends StatelessWidget {
     ),
   ),
 
-                if (replyMessage.isNotEmpty)
+                if (widget.replyMessage.isNotEmpty)
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.only(
@@ -158,14 +248,14 @@ class MessageBubble extends StatelessWidget {
                           CrossAxisAlignment.start,
                       children: [
                         Text(
-                          replyType == "image"
+                          widget.replyType == "image"
                               ? "📷 Photo"
-                              : replyMessage,
+                              : widget.replyMessage,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isMe
+                            color: widget.isMe
                                 ? Colors.white
                                 : Colors.black,
                           ),
@@ -174,12 +264,12 @@ class MessageBubble extends StatelessWidget {
                     ),
                   ),
 
-                if (type == "image")
-  if (imageUrl.isNotEmpty)
+                if (widget.type == "image")
+  if (widget.imageUrl.isNotEmpty)
     ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
-        imageUrl,
+         widget.imageUrl,
         width: 220,
         fit: BoxFit.cover,
         errorBuilder: (
@@ -222,21 +312,76 @@ class MessageBubble extends StatelessWidget {
       ),
     ),
 
-                if (type == "text")
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      message,
-                      style: TextStyle(
-                        color: isMe
-                            ? Colors.white
-                            : Colors.black,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
+               if (widget.type == "text")
+  Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      widget.message,
+      style: TextStyle(
+        color: widget.isMe
+            ? Colors.white
+            : Colors.black,
+        fontSize: 16,
+      ),
+    ),
+  ),
 
-                  if (reaction.isNotEmpty)
+if (widget.type == "audio")
+  SizedBox(
+    width: 230,
+    child: Row(
+      children: [
+
+        IconButton(
+          onPressed: _toggleAudio,
+          icon: Icon(
+            _isPlaying
+                ? Icons.pause_circle_filled
+                : Icons.play_circle_fill,
+            size: 36,
+            color: widget.isMe
+                ? Colors.white
+                : Colors.green,
+          ),
+        ),
+
+        Expanded(
+          child: Slider(
+            value: _position.inMilliseconds
+                .toDouble()
+                .clamp(
+                  0,
+                  _duration.inMilliseconds == 0
+                      ? 1
+                      : _duration.inMilliseconds.toDouble(),
+                ),
+            max: _duration.inMilliseconds == 0
+                ? 1
+                : _duration.inMilliseconds.toDouble(),
+            onChanged: (value) async {
+              await _audioPlayer.seek(
+                Duration(
+                  milliseconds: value.toInt(),
+                ),
+              );
+            },
+          ),
+        ),
+
+        Text(
+          "${_position.inMinutes}:${(_position.inSeconds % 60).toString().padLeft(2, '0')}",
+          style: TextStyle(
+            fontSize: 12,
+            color: widget.isMe
+                ? Colors.white
+                : Colors.black,
+          ),
+        ),
+      ],
+    ),
+  ),
+
+                  if (widget.reaction.isNotEmpty)
   Align(
     alignment: Alignment.centerLeft,
     child: Padding(
@@ -244,7 +389,7 @@ class MessageBubble extends StatelessWidget {
         top: 4,
       ),
       child: Text(
-        reaction,
+        widget.reaction,
         style: const TextStyle(
           fontSize: 20,
         ),
@@ -258,25 +403,25 @@ class MessageBubble extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      time,
+                       widget.time,
                       style: TextStyle(
                         fontSize: 11,
-                        color: isMe
+                        color: widget.isMe
                             ? Colors.white70
                             : Colors.black54,
                       ),
                     ),
 
-                    if (isMe) ...[
+                    if (widget.isMe) ...[
                       const SizedBox(width: 4),
                       Icon(
-                        status == 3
+                        widget.status == 3
                             ? Icons.done_all
-                            : status == 2
+                            : widget.status == 2
                                 ? Icons.done_all
                                 : Icons.done,
                         size: 16,
-                        color: status == 3
+                        color: widget.status == 3
                             ? Colors.blue
                             : Colors.white70,
                       ),

@@ -45,6 +45,8 @@ dependencies:
   uuid: ^4.6.0
   shared_preferences: ^2.5.3
   firebase_storage: ^13.0.3
+  
+  just_audio: ^0.10.5
 
 dev_dependencies:
   flutter_test:
