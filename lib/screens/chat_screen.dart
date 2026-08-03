@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import 'call_screen.dart';
+import 'dart:async';
+import '../services/firestore_service.dart';
 
 import '../controllers/chat_controller.dart';
 import '../widgets/chat_input_bar.dart';
@@ -23,6 +26,13 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   late ChatController chatController;
 
+  final FirestoreService firestoreService =
+    FirestoreService();
+
+StreamSubscription<DocumentSnapshot>? callSubscription;
+
+bool _isCallScreenOpen = false;
+
   bool isSearchMode = false;
 
   @override
@@ -32,20 +42,54 @@ class _ChatScreenState extends State<ChatScreen> {
     chatController = ChatController(
       receiverId: widget.receiverId,
     );
+    listenIncomingCall();
   }
-
- @override
+@override
 void dispose() {
+  callSubscription?.cancel();
+
   isSearchMode = false;
 
   chatController.dispose();
 
   super.dispose();
 }
-
   void refresh() {
     setState(() {});
   }
+
+  Future<void> listenIncomingCall() async {
+  final myId =
+      await firestoreService.getCurrentUserId();
+
+ callSubscription = firestoreService
+    .listenIncomingCall(myId)
+    .listen((snapshot) {
+  if (!snapshot.exists) return;
+
+  final data =
+      snapshot.data() as Map<String, dynamic>;
+
+  if (data["status"] == "calling" &&
+      !_isCallScreenOpen) {
+
+    _isCallScreenOpen = true;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          userName: widget.userName,
+          photoUrl: "",
+          isIncoming: true,
+        ),
+      ),
+    ).then((_) {
+      _isCallScreenOpen = false;
+    });
+  }
+});
+}
 
   @override
   Widget build(BuildContext context) {
@@ -197,11 +241,22 @@ void dispose() {
     ),
 
     IconButton(
-      onPressed: () {
-        // Voice Call
-      },
-      icon: const Icon(Icons.call),
-    ),
+  onPressed: () async {
+
+    await chatController.startVoiceCall();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          userName: widget.userName,
+          photoUrl: "",
+        ),
+      ),
+    );
+  },
+  icon: const Icon(Icons.call),
+),
 
     IconButton(
       onPressed: () {},
@@ -303,6 +358,9 @@ onLongPress: () async {
   child: Row(
     mainAxisAlignment:
         MainAxisAlignment.spaceEvenly,
+
+    
+
     children: [
       _reactionButton(
         context,

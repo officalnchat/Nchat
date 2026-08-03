@@ -382,4 +382,73 @@ Future<void> setReaction({
     "reaction": emoji,
   });
 }
+Future<void> startVoiceCall({
+  required String callerId,
+  required String receiverId,
+}) async {
+  await FirebaseFirestore.instance
+      .collection("calls")
+      .doc(receiverId)
+      .set({
+    "callerId": callerId,
+    "receiverId": receiverId,
+    "type": "voice",
+    "status": "calling",
+    "timestamp": FieldValue.serverTimestamp(),
+  });
+}
+// ===========================
+// Listen Incoming Call
+// ===========================
+
+Stream<DocumentSnapshot> listenIncomingCall(
+  String userId,
+) {
+  return FirebaseFirestore.instance
+      .collection("calls")
+      .doc(userId)
+      .snapshots();
+}
+// ===========================
+// Accept Call
+// ===========================
+
+Future<void> acceptCall({
+  required String userId,
+}) async {
+  await FirebaseFirestore.instance
+      .collection("calls")
+      .doc(userId)
+      .update({
+    "status": "accepted",
+  });
+}
+
+// ===========================
+// Reject Call
+// ===========================
+
+Future<void> rejectCall({
+  required String userId,
+}) async {
+  await FirebaseFirestore.instance
+      .collection("calls")
+      .doc(userId)
+      .update({
+    "status": "rejected",
+  });
+}
+
+// ===========================
+// End Call
+// ===========================
+
+Future<void> endCall({
+  required String userId,
+}) async {
+  await FirebaseFirestore.instance
+      .collection("calls")
+      .doc(userId)
+      .delete();
+}
 }

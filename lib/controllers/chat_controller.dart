@@ -598,6 +598,22 @@ Future<void> setReaction(
   );
 }
 
+// ===========================
+// Start Voice Call
+// ===========================
+
+Future<void> startVoiceCall() async {
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
+
+  await _firestoreService.startVoiceCall(
+    callerId: currentUserId!,
+    receiverId: receiverId,
+  );
+
+  print("📞 Voice Call Request Sent");
+}
+
 
 
 // ===========================
@@ -612,5 +628,43 @@ void dispose() {
   scrollController.dispose();
 
   searchController.dispose();
+}
+// ===========================
+// Accept Call
+// ===========================
+
+Future<void> acceptCall() async {
+  final myId =
+      await _firestoreService.getCurrentUserId();
+
+  await _firestoreService.acceptCall(
+    userId: myId,
+  );
+}
+
+// ===========================
+// Reject Call
+// ===========================
+
+Future<void> rejectCall() async {
+  final myId =
+      await _firestoreService.getCurrentUserId();
+
+  await _firestoreService.rejectCall(
+    userId: myId,
+  );
+}
+
+// ===========================
+// End Call
+// ===========================
+
+Future<void> endCall() async {
+  final myId =
+      await _firestoreService.getCurrentUserId();
+
+  await _firestoreService.endCall(
+    userId: myId,
+  );
 }
 }
