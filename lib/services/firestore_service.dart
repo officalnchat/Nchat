@@ -382,45 +382,113 @@ Future<void> setReaction({
     "reaction": emoji,
   });
 }
-Future<void> startVoiceCall({
+
+// ===========================
+// Call Id
+// ===========================
+
+String getCallId({
+  required String user1,
+  required String user2,
+}) {
+  final ids = [
+    user1,
+    user2,
+  ]..sort();
+
+  return ids.join("_");
+}
+
+// ===========================
+// Start Voice Call
+// ===========================
+
+Future<String> startVoiceCall({
   required String callerId,
   required String receiverId,
 }) async {
-  await FirebaseFirestore.instance
+
+  final callId = getCallId(
+    user1: callerId,
+    user2: receiverId,
+  );
+
+  await _firestore
       .collection("calls")
-      .doc(receiverId)
+      .doc(callId)
       .set({
+
+    "callId": callId,
+
     "callerId": callerId,
+
     "receiverId": receiverId,
+
     "type": "voice",
+
     "status": "calling",
-    "timestamp": FieldValue.serverTimestamp(),
+
+    "createdAt":
+        FieldValue.serverTimestamp(),
+
+    "acceptedAt": null,
+
+    "endedAt": null,
+
   });
+
+  return callId;
 }
 // ===========================
 // Listen Incoming Call
 // ===========================
 
-Stream<DocumentSnapshot> listenIncomingCall(
+Stream<QuerySnapshot> listenIncomingCall(
   String userId,
 ) {
   return FirebaseFirestore.instance
       .collection("calls")
-      .doc(userId)
+      .where(
+        "receiverId",
+        isEqualTo: userId,
+      )
+      .where(
+        "status",
+        isEqualTo: "calling",
+      )
       .snapshots();
 }
+
+// ===========================
+// Listen Call
+// ===========================
+
+Stream<DocumentSnapshot> listenCall(
+  String callId,
+) {
+  return _firestore
+      .collection("calls")
+      .doc(callId)
+      .snapshots();
+}
+
 // ===========================
 // Accept Call
 // ===========================
 
 Future<void> acceptCall({
-  required String userId,
+  required String callId,
 }) async {
-  await FirebaseFirestore.instance
+  await _firestore
       .collection("calls")
-      .doc(userId)
+      .doc(callId)
       .update({
+
     "status": "accepted",
+
+    "acceptedAt":
+        FieldValue.serverTimestamp(),
+
   });
 }
 
@@ -429,11 +497,11 @@ Future<void> acceptCall({
 // ===========================
 
 Future<void> rejectCall({
-  required String userId,
+  required String callId,
 }) async {
-  await FirebaseFirestore.instance
+  await _firestore
       .collection("calls")
-      .doc(userId)
+      .doc(callId)
       .update({
     "status": "rejected",
   });
@@ -444,11 +512,32 @@ Future<void> rejectCall({
 // ===========================
 
 Future<void> endCall({
-  required String userId,
+  required String callId,
 }) async {
-  await FirebaseFirestore.instance
+  await _firestore
       .collection("calls")
-      .doc(userId)
-      .delete();
+      .doc(callId)
+      .update({
+
+    "status": "ended",
+
+    "endedAt":
+        FieldValue.serverTimestamp(),
+
+  });
+}
+// ===========================
+// Ringing Call
+// ===========================
+
+Future<void> setCallRinging({
+  required String callId,
+}) async {
+  await _firestore
+      .collection("calls")
+      .doc(callId)
+      .update({
+    "status": "ringing",
+  });
 }
 }

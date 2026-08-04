@@ -69,8 +69,8 @@ Future<String?> stopRecording() async {
 }
 
   List<Map<String, dynamic>> messages = [];
-  
-  // ===========================
+
+// ===========================
 // Search
 // ===========================
 
@@ -80,6 +80,8 @@ final TextEditingController searchController =
 List<Map<String, dynamic>> filteredMessages = [];
 
 bool isSearching = false;
+
+String searchQuery = "";
 
 // ===========================
 // Reply
@@ -115,6 +117,8 @@ void clearForwardMessage() {
 
   String? currentUserId;
 
+  String? currentCallId;
+
   Future<String> getChatId() async {
     currentUserId ??=
         await _firestoreService.getCurrentUserId();
@@ -126,6 +130,24 @@ void clearForwardMessage() {
 
     return ids.join("_");
   }
+
+  // ===========================
+// Get Call Id
+// ===========================
+
+Future<String> getCallId() async {
+
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
+
+  currentCallId ??=
+      _firestoreService.getCallId(
+        user1: currentUserId!,
+        user2: receiverId,
+      );
+
+  return currentCallId!;
+}
 
   // ===========================
   // Receiver Presence
@@ -242,8 +264,11 @@ void clearForwardMessage() {
     .whereType<Map<String, dynamic>>()
     .toList();
     
-    filteredMessages = List.from(messages);
-
+   if (searchQuery.trim().isEmpty) {
+  filteredMessages = List.from(messages);
+} else {
+  searchMessages(searchQuery);
+}
     Future.delayed(
       const Duration(
         milliseconds: 100,
@@ -277,18 +302,26 @@ void clearForwardMessage() {
 // ===========================
 
 void searchMessages(String query) {
+
+  searchQuery = query;
+
   if (query.trim().isEmpty) {
     filteredMessages = List.from(messages);
     return;
   }
 
-  filteredMessages = messages.where((message) {
-    final text =
-        message["text"].toString().toLowerCase();
+  final lowerQuery =
+      query.toLowerCase().trim();
 
-    return text.contains(
-      query.toLowerCase(),
-    );
+  filteredMessages = messages.where((message) {
+
+    final text =
+        message["text"]
+            .toString()
+            .toLowerCase();
+
+    return text.contains(lowerQuery);
+
   }).toList();
 }
     // ===========================
@@ -602,16 +635,23 @@ Future<void> setReaction(
 // Start Voice Call
 // ===========================
 
+// ===========================
+// Start Voice Call
+// ===========================
+
 Future<void> startVoiceCall() async {
+
   currentUserId ??=
       await _firestoreService.getCurrentUserId();
 
-  await _firestoreService.startVoiceCall(
-    callerId: currentUserId!,
-    receiverId: receiverId,
-  );
+  currentCallId =
+      await _firestoreService.startVoiceCall(
+        callerId: currentUserId!,
+        receiverId: receiverId,
+      );
 
-  print("📞 Voice Call Request Sent");
+  print("📞 Voice Call Started");
+  print("📞 CallId : $currentCallId");
 }
 
 
@@ -629,16 +669,44 @@ void dispose() {
 
   searchController.dispose();
 }
+
+// ===========================
+// Listen Call
+// ===========================
+
+Stream<DocumentSnapshot> listenCall(
+  String callId,
+) {
+  return _firestoreService.listenCall(
+    callId,
+  );
+}
+// ===========================
+// Set Call Ringing
+// ===========================
+
+Future<void> setCallRinging() async {
+
+  final callId =
+      await getCallId();
+
+  await _firestoreService.setCallRinging(
+    callId: callId,
+  );
+
+  print("📞 Call Status Updated: Ringing");
+}
+
 // ===========================
 // Accept Call
 // ===========================
 
 Future<void> acceptCall() async {
-  final myId =
-      await _firestoreService.getCurrentUserId();
+
+  final callId = await getCallId();
 
   await _firestoreService.acceptCall(
-    userId: myId,
+    callId: callId,
   );
 }
 
@@ -646,12 +714,16 @@ Future<void> acceptCall() async {
 // Reject Call
 // ===========================
 
+// ===========================
+// Reject Call
+// ===========================
+
 Future<void> rejectCall() async {
-  final myId =
-      await _firestoreService.getCurrentUserId();
+
+  final callId = await getCallId();
 
   await _firestoreService.rejectCall(
-    userId: myId,
+    callId: callId,
   );
 }
 
@@ -659,12 +731,16 @@ Future<void> rejectCall() async {
 // End Call
 // ===========================
 
+// ===========================
+// End Call
+// ===========================
+
 Future<void> endCall() async {
-  final myId =
-      await _firestoreService.getCurrentUserId();
+
+  final callId = await getCallId();
 
   await _firestoreService.endCall(
-    userId: myId,
+    callId: callId,
   );
 }
 }

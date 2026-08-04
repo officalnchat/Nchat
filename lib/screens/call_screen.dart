@@ -1,17 +1,22 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../utils/app_colors.dart';
 import '../controllers/chat_controller.dart';
 
 class CallScreen extends StatefulWidget {
   final String userName;
   final String photoUrl;
+  final String receiverId;
   final bool isIncoming;
 
   const CallScreen({
     super.key,
     required this.userName,
     required this.photoUrl,
+    required this.receiverId,
     this.isIncoming = false,
   });
 
@@ -21,17 +26,21 @@ class CallScreen extends StatefulWidget {
 
 class _CallScreenState extends State<CallScreen> {
 
-  final ChatController chatController =
-    ChatController(
-      receiverId: "",
-    );
+  late ChatController chatController;
 
  bool isMuted = false;
 bool isSpeakerOn = false;
+bool isCallConnected = false;
 
 Timer? _timer;
 
+StreamSubscription<DocumentSnapshot>? _callListener;
+
+bool _screenClosed = false;
+
 int _seconds = 0;
+
+String callStatus = "ringing";
 
 String callTime = "00:00";
 
@@ -68,9 +77,76 @@ void startTimer() {
 void initState() {
   super.initState();
 
-  if (!widget.isIncoming) {
+  chatController = ChatController(
+    receiverId: widget.receiverId,
+  );
+
+  listenCallStatus();
+}
+
+// ===========================
+// Listen Call Status
+// ===========================
+
+void listenCallStatus() async {
+
+  final callId =
+      await chatController.getCallId();
+
+      print("📞 Listening CallId : $callId");
+
+  _callListener =
+      chatController
+          .listenCall(callId)
+          .listen((snapshot) {
+
+    if (!snapshot.exists) return;
+
+    final data =
+        snapshot.data()
+            as Map<String, dynamic>;
+
+    final status =
+        data["status"] ?? "";
+
+        if (mounted) {
+  setState(() {
+    callStatus = status;
+  });
+}
+
+    print("📞 Call Status : $status");
+
+   if (status == "accepted") {
+
+  if (!isCallConnected) {
+    setState(() {
+      isCallConnected = true;
+    });
+  }
+
+  if (_timer == null) {
     startTimer();
   }
+}
+
+if (status == "ended" ||
+    status == "rejected") {
+
+  _timer?.cancel();
+  _timer = null;
+
+  if (!_screenClosed &&
+      mounted &&
+      Navigator.canPop(context)) {
+
+    _screenClosed = true;
+
+    Navigator.pop(context);
+  }
+}
+
+  });
 }
 
   @override
@@ -85,14 +161,18 @@ void initState() {
             const SizedBox(height: 40),
 
             Text(
-              widget.isIncoming
-                  ? "Incoming Voice Call"
-                  : "Calling...",
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 18,
-              ),
-            ),
+  callStatus == "calling"
+      ? "Calling..."
+      : callStatus == "ringing"
+          ? "Ringing..."
+          : callStatus == "accepted"
+              ? "Voice Call"
+              : "Call Ended",
+  style: const TextStyle(
+    color: Colors.white70,
+    fontSize: 18,
+  ),
+),
 
             const SizedBox(height: 30),
 
@@ -124,7 +204,9 @@ void initState() {
             const SizedBox(height: 8),
 
             Text(
-              callTime,
+  callStatus == "accepted"
+      ? callTime
+      : "",
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 18,
@@ -132,7 +214,7 @@ void initState() {
             ),
 
             const Spacer(),
-                        if (widget.isIncoming)
+                        if (widget.isIncoming && !isCallConnected)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: 40,
@@ -149,9 +231,7 @@ void initState() {
 
   await chatController.rejectCall();
 
-  if (!mounted) return;
-
-  Navigator.pop(context);
+  // Firestore listener screen automatically close karega.
 },
                       child: const Icon(
                         Icons.call_end,
@@ -162,14 +242,17 @@ void initState() {
                     FloatingActionButton(
                       heroTag: "accept",
                       backgroundColor: Colors.green,
-                      onPressed: () async {
+                     onPressed: () async {
+
   await chatController.acceptCall();
 
   if (!mounted) return;
 
-  startTimer();
+  setState(() {
+    callStatus = "accepted";
+    isCallConnected = true;
+  });
 
-  setState(() {});
 },
                       child: const Icon(
                         Icons.call,
@@ -179,7 +262,7 @@ void initState() {
                   ],
                 ),
               )
-            else
+            else if (!widget.isIncoming || isCallConnected)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: 40,
@@ -214,9 +297,7 @@ void initState() {
 
   await chatController.endCall();
 
-  if (!mounted) return;
-
-  Navigator.pop(context);
+  // Firestore listener screen automatically close karega.
 },
                       child: const Icon(
                         Icons.call_end,
@@ -252,7 +333,12 @@ void initState() {
   }
   @override
 void dispose() {
+
   _timer?.cancel();
+
+  _callListener?.cancel();
+
   super.dispose();
+
 }
 }

@@ -29,7 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final FirestoreService firestoreService =
     FirestoreService();
 
-StreamSubscription<DocumentSnapshot>? callSubscription;
+StreamSubscription<QuerySnapshot>? callSubscription;
 
 bool _isCallScreenOpen = false;
 
@@ -62,16 +62,30 @@ void dispose() {
   final myId =
       await firestoreService.getCurrentUserId();
 
- callSubscription = firestoreService
+  callSubscription = firestoreService
     .listenIncomingCall(myId)
-    .listen((snapshot) {
-  if (!snapshot.exists) return;
+    .listen((snapshot) async {
 
-  final data =
-      snapshot.data() as Map<String, dynamic>;
+    if (snapshot.docs.isEmpty) return;
 
-  if (data["status"] == "calling" &&
-      !_isCallScreenOpen) {
+    final data =
+        snapshot.docs.first.data()
+            as Map<String, dynamic>;
+
+    final callerId =
+        data["callerId"] ?? "";
+
+    if (callerId != widget.receiverId) {
+      return;
+    }
+
+    if (_isCallScreenOpen) return;
+
+    // Update call status to ringing
+
+await chatController.setCallRinging();
+
+print("📞 Incoming Call Status: Ringing");
 
     _isCallScreenOpen = true;
 
@@ -79,16 +93,16 @@ void dispose() {
       context,
       MaterialPageRoute(
         builder: (_) => CallScreen(
-          userName: widget.userName,
-          photoUrl: "",
-          isIncoming: true,
-        ),
+  userName: widget.userName,
+  photoUrl: "",
+  receiverId: widget.receiverId,
+  isIncoming: true,
+),
       ),
     ).then((_) {
       _isCallScreenOpen = false;
     });
-  }
-});
+  });
 }
 
   @override
@@ -251,6 +265,7 @@ void dispose() {
         builder: (_) => CallScreen(
           userName: widget.userName,
           photoUrl: "",
+          receiverId: widget.receiverId,
         ),
       ),
     );
@@ -305,11 +320,9 @@ void dispose() {
 
 chatController.updateMessageStatus();
 
-if (chatController.searchController.text.isNotEmpty) {
-  chatController.searchMessages(
-    chatController.searchController.text,
-  );
-}
+chatController.searchMessages(
+  chatController.searchController.text,
+);
                 return ListView.builder(
                   controller:
                       chatController.scrollController,
