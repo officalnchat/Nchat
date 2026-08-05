@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'cloudinary_service.dart';
 
 import 'auth_service.dart';
 
@@ -9,8 +9,8 @@ class FirestoreService {
   final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
-  final FirebaseStorage _storage =
-      FirebaseStorage.instance;
+  final CloudinaryService _cloudinaryService =
+    CloudinaryService();
 
   final AuthService _authService =
       AuthService();
@@ -25,19 +25,17 @@ class FirestoreService {
   // Profile Image
   // ===========================
 
-  Future<String> uploadProfileImage({
-    required String userId,
-    required File imageFile,
-  }) async {
-    final Reference ref = _storage
-        .ref()
-        .child('profile_images')
-        .child('$userId.jpg');
+ Future<String> uploadProfileImage({
+  required String userId,
+  required File imageFile,
+}) async {
+  final String? imageUrl =
+      await _cloudinaryService.uploadImage(
+    imageFile,
+  );
 
-    await ref.putFile(imageFile);
-
-    return await ref.getDownloadURL();
-  }
+  return imageUrl ?? "";
+}
 
   // ===========================
   // Save User
