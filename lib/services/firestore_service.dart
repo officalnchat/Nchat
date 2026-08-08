@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'cloudinary_service.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'auth_service.dart';
 
@@ -441,20 +442,25 @@ Future<String> startVoiceCall({
 // Listen Incoming Call
 // ===========================
 
-Stream<QuerySnapshot> listenIncomingCall(
-  String userId,
+Stream listenIncomingCall(
+String userId,
 ) {
-  return FirebaseFirestore.instance
-      .collection("calls")
-      .where(
-        "receiverId",
-        isEqualTo: userId,
-      )
-      .where(
-        "status",
-        isEqualTo: "calling",
-      )
-      .snapshots();
+
+return _firestore
+    .collection("calls")
+    .where(
+      "receiverId",
+      isEqualTo: userId,
+    )
+    .where(
+      "status",
+      whereIn: [
+        "calling",
+        "ringing",
+      ],
+    )
+    .snapshots();
+
 }
 
 // ===========================
@@ -525,6 +531,36 @@ Future<void> endCall({
   });
 }
 // ===========================
+// Clear Call Data
+// ===========================
+
+Future clearCallData({
+required String callId,
+}) async {
+
+await _firestore
+.collection("calls")
+.doc(callId)
+.update({
+
+"offer":
+    FieldValue.delete(),
+
+"answer":
+    FieldValue.delete(),
+
+"status":
+    "ended",
+
+"updatedAt":
+    FieldValue.serverTimestamp(),
+
+});
+
+print("🧹 Call Data Cleared");
+
+}
+// ===========================
 // Ringing Call
 // ===========================
 
@@ -537,5 +573,98 @@ Future<void> setCallRinging({
       .update({
     "status": "ringing",
   });
+}
+// ===========================
+// Save Offer
+// ===========================
+
+Future<void> saveOffer({
+  required String callId,
+  required RTCSessionDescription offer,
+}) async {
+  await _firestore
+      .collection("calls")
+      .doc(callId)
+      .update({
+    "offer": {
+      "sdp": offer.sdp,
+      "type": offer.type,
+    },
+  });
+}
+
+// ===========================
+// Save Answer
+// ===========================
+
+Future<void> saveAnswer({
+  required String callId,
+  required RTCSessionDescription answer,
+}) async {
+  await _firestore
+      .collection("calls")
+      .doc(callId)
+      .update({
+    "answer": {
+      "sdp": answer.sdp,
+      "type": answer.type,
+    },
+  });
+}
+
+// ===========================
+// Get Call Stream
+// ===========================
+
+Stream<DocumentSnapshot> getCallStream(
+  String callId,
+) {
+  return _firestore
+      .collection("calls")
+      .doc(callId)
+      .snapshots();
+}
+// ===========================
+// Save ICE Candidate
+// ===========================
+
+Future<void> saveIceCandidate({
+  required String callId,
+  required RTCIceCandidate candidate,
+  required bool isCaller,
+}) async {
+  await _firestore
+      .collection("calls")
+      .doc(callId)
+      .collection(
+        isCaller
+            ? "callerCandidates"
+            : "receiverCandidates",
+      )
+      .add({
+    "candidate": candidate.candidate,
+    "sdpMid": candidate.sdpMid,
+    "sdpMLineIndex":
+        candidate.sdpMLineIndex,
+  });
+}
+
+// ===========================
+// Listen ICE Candidates
+// ===========================
+
+Stream<QuerySnapshot> listenIceCandidates({
+  required String callId,
+  required bool isCaller,
+}) {
+  return _firestore
+      .collection("calls")
+      .doc(callId)
+      .collection(
+        isCaller
+            ? "receiverCandidates"
+            : "callerCandidates",
+      )
+      .snapshots();
 }
 }

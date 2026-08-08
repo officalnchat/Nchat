@@ -1,15 +1,18 @@
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import '../services/webrtc_service.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 
-class ChatController {
+class ChatController extends ChangeNotifier {
   final String receiverId;
 
   ChatController({
@@ -27,6 +30,9 @@ class ChatController {
 
   final StorageService _storageService =
       StorageService();
+
+  final WebRTCService _webRTCService =
+    WebRTCService();    
 
       // ===========================
 // Voice Recording
@@ -119,6 +125,35 @@ void clearForwardMessage() {
 
   String? currentCallId;
 
+  bool? isCaller;
+  // ===========================
+// Voice Call Listeners
+// ===========================
+
+StreamSubscription<DocumentSnapshot>? _callSubscription;
+
+StreamSubscription<QuerySnapshot>? _iceSubscription;
+
+bool _disposed = false;
+
+  RTCPeerConnection? peerConnection;
+
+  MediaStream? localStream;
+
+  MediaStream? remoteStream;
+
+  VoidCallback? onRemoteStreamUpdate;
+
+  bool offerReceived = false;
+
+  bool answerReceived = false;
+
+  bool _webRtcInitialized = false;
+
+  MediaStream? getRemoteStream() {
+  return remoteStream;
+}
+
   Future<String> getChatId() async {
     currentUserId ??=
         await _firestoreService.getCurrentUserId();
@@ -137,16 +172,89 @@ void clearForwardMessage() {
 
 Future<String> getCallId() async {
 
-  currentUserId ??=
-      await _firestoreService.getCurrentUserId();
+currentUserId ??=
+await _firestoreService.getCurrentUserId();
 
-  currentCallId ??=
-      _firestoreService.getCallId(
-        user1: currentUserId!,
-        user2: receiverId,
-      );
-
+if (currentCallId != null) {
   return currentCallId!;
+}
+
+currentCallId =
+_firestoreService.getCallId(
+  user1: currentUserId!,
+  user2: receiverId,
+);
+
+return currentCallId!;
+}
+// ===========================
+// Initialize WebRTC
+// ===========================
+
+Future<void> initializeWebRTC() async {
+
+  if (_webRtcInitialized) {
+  print("✅ WebRTC Already Initialized");
+  return;
+}
+
+_webRtcInitialized = true;
+
+  await _webRTCService.initialize();
+
+  peerConnection =
+      _webRTCService.peerConnection;
+
+  localStream =
+      _webRTCService.localStream;
+
+  remoteStream =
+      _webRTCService.remoteStream;
+
+  print("🎤 WebRTC Initialized");
+  peerConnection!.onIceCandidate =
+    (RTCIceCandidate candidate) async {
+
+  final callId = await getCallId();
+
+  await _firestoreService.saveIceCandidate(
+  callId: callId,
+  candidate: candidate,
+  isCaller: isCaller ?? false,
+);
+
+  print("🧊 ICE Candidate Sent");
+};
+peerConnection!.onTrack =
+    (RTCTrackEvent event) {
+
+  if (event.streams.isNotEmpty) {
+
+    remoteStream =
+        event.streams.first;
+
+
+    print(
+      "🎤 Remote Audio Connected",
+    );
+
+
+    onRemoteStreamUpdate?.call();
+
+  }
+
+};
+peerConnection!.onConnectionState = (state) {
+  print("🌐 Connection State : $state");
+};
+
+peerConnection!.onIceConnectionState = (state) {
+  print("🧊 ICE Connection State : $state");
+};
+
+peerConnection!.onSignalingState = (state) {
+  print("📡 Signaling State : $state");
+};
 }
 
   // ===========================
@@ -194,22 +302,34 @@ Future<String> getCallId() async {
   // Update Message Status
   // ===========================
 
-  Future<void> updateMessageStatus() async {
-    final chatId = await getChatId();
+ Future<void> updateMessageStatus() async {
+  final chatId = await getChatId();
 
-    currentUserId ??=
-        await _firestoreService.getCurrentUserId();
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
 
-    await _firestoreService.markMessagesDelivered(
-      chatId: chatId,
-      currentUserId: currentUserId!,
-    );
+  await _firestoreService.markMessagesDelivered(
+    chatId: chatId,
+    currentUserId: currentUserId!,
+  );
+}
 
-    await _firestoreService.markMessagesSeen(
-      chatId: chatId,
-      currentUserId: currentUserId!,
-    );
-  }
+// ===========================
+// Mark Messages Seen
+// ===========================
+
+Future<void> markMessagesSeen() async {
+
+  final chatId = await getChatId();
+
+  currentUserId ??=
+      await _firestoreService.getCurrentUserId();
+
+  await _firestoreService.markMessagesSeen(
+    chatId: chatId,
+    currentUserId: currentUserId!,
+  );
+}
 
   // ===========================
   // Load Messages
@@ -641,6 +761,8 @@ Future<void> setReaction(
 
 Future<void> startVoiceCall() async {
 
+  isCaller = true;
+
   currentUserId ??=
       await _firestoreService.getCurrentUserId();
 
@@ -649,6 +771,17 @@ Future<void> startVoiceCall() async {
         callerId: currentUserId!,
         receiverId: receiverId,
       );
+      print(
+"📞 Current Call ID : $currentCallId"
+);
+
+  await initializeWebRTC();
+
+  listenSignaling();
+
+  listenIceCandidates(true);
+
+  await createOffer();
 
   print("📞 Voice Call Started");
   print("📞 CallId : $currentCallId");
@@ -660,14 +793,42 @@ Future<void> startVoiceCall() async {
 // Dispose
 // ===========================
 
+@override
 void dispose() {
+
+  _disposed = true;
+
+_callSubscription?.cancel();
+
+_iceSubscription?.cancel();
+
   setTyping(false);
+
+  audioRecorder.dispose();
 
   messageController.dispose();
 
   scrollController.dispose();
 
   searchController.dispose();
+
+  _webRTCService.dispose();
+
+  currentCallId = null;
+  peerConnection = null;
+  localStream = null;
+  remoteStream = null;
+
+  offerReceived = false;
+  answerReceived = false;
+
+_addedCandidates.clear();
+_pendingIceCandidates.clear();
+_remoteDescriptionSet = false;
+
+_webRtcInitialized = false;
+
+  super.dispose();
 }
 
 // ===========================
@@ -701,13 +862,35 @@ Future<void> setCallRinging() async {
 // Accept Call
 // ===========================
 
-Future<void> acceptCall() async {
+Future acceptCall(String callId) async {
 
-  final callId = await getCallId();
+isCaller = false;
 
-  await _firestoreService.acceptCall(
-    callId: callId,
-  );
+currentCallId = callId;
+
+
+await _firestoreService.acceptCall(
+callId: callId,
+);
+
+
+print("✅ Call Accepted");
+
+
+await initializeWebRTC();
+
+
+listenSignaling();
+
+
+listenIceCandidates(false);
+
+
+await createAnswer();
+
+
+print("🎧 Receiver WebRTC Ready");
+
 }
 
 // ===========================
@@ -718,13 +901,232 @@ Future<void> acceptCall() async {
 // Reject Call
 // ===========================
 
-Future<void> rejectCall() async {
+Future rejectCall(String callId) async {
 
-  final callId = await getCallId();
+  currentCallId = callId;
 
   await _firestoreService.rejectCall(
     callId: callId,
   );
+
+  await _webRTCService.dispose();
+
+  peerConnection = null;
+  localStream = null;
+  remoteStream = null;
+
+  offerReceived = false;
+answerReceived = false;
+
+_addedCandidates.clear();
+_pendingIceCandidates.clear();
+_remoteDescriptionSet = false;
+
+currentCallId = null;
+
+  _webRtcInitialized = false;
+
+  print("❌ Call Rejected");
+}
+// ===========================
+// Create Offer
+// ===========================
+
+Future<void> createOffer() async {
+
+  if (peerConnection == null) {
+    await initializeWebRTC();
+  }
+
+  final callId =
+      await getCallId();
+
+  final offer =
+      await _webRTCService.createOffer();
+
+  await _firestoreService.saveOffer(
+    callId: callId,
+    offer: offer,
+  );
+
+  print("📤 Offer Saved");
+}
+
+// ===========================
+// Create Answer
+// ===========================
+
+Future<void> createAnswer() async {
+
+  if (!offerReceived) {
+
+  print(
+    "⏳ Waiting for Offer...",
+  );
+
+  return;
+
+}
+
+  if (peerConnection == null) {
+    await initializeWebRTC();
+  }
+
+  final callId =
+      await getCallId();
+
+  final answer =
+      await _webRTCService.createAnswer();
+
+  await _firestoreService.saveAnswer(
+    callId: callId,
+    answer: answer,
+  );
+
+  print("📥 Answer Saved");
+}
+// ===========================
+// Listen Signaling
+// ===========================
+
+void listenSignaling() async {
+  final callId = await getCallId();
+
+  _callSubscription?.cancel();
+
+_callSubscription =
+    _firestoreService
+        .getCallStream(callId)
+        .listen((snapshot) async {
+
+    if (!snapshot.exists) return;
+
+    if (_disposed) return;
+
+    final data =
+        snapshot.data()
+            as Map<String, dynamic>;
+
+    // Offer
+  if (isCaller == false &&
+    data["offer"] != null &&
+    !offerReceived) {
+
+  final offer = RTCSessionDescription(
+    data["offer"]["sdp"],
+    data["offer"]["type"],
+  );
+
+  await _webRTCService.setRemoteDescription(
+  offer,
+);
+
+_remoteDescriptionSet = true;
+
+offerReceived = true;
+
+for (final candidate in _pendingIceCandidates) {
+  await _webRTCService.addIceCandidate(candidate);
+}
+
+_pendingIceCandidates.clear();
+
+print("🧊 Pending ICE Candidates Added");
+
+print("📥 Offer Received");
+
+  // Offer milne ke baad hi Answer create karo
+  await createAnswer();
+
+  print("📤 Answer Created");
+}
+
+    // Answer
+    if (isCaller == true &&
+    data["answer"] != null &&
+    !answerReceived) {
+  final answer = RTCSessionDescription(
+    data["answer"]["sdp"],
+    data["answer"]["type"],
+  );
+
+  await _webRTCService.setRemoteDescription(
+  answer,
+);
+
+_remoteDescriptionSet = true;
+
+answerReceived = true;
+
+for (final candidate in _pendingIceCandidates) {
+  await _webRTCService.addIceCandidate(candidate);
+}
+
+_pendingIceCandidates.clear();
+
+print("🧊 Pending ICE Candidates Added");
+
+notifyListeners();
+
+print("📥 Answer Received & Remote Description Set");
+}  
+  });
+}
+// ===========================
+// Listen ICE Candidates
+// ===========================
+
+final Set<String> _addedCandidates = {};
+
+final List<RTCIceCandidate> _pendingIceCandidates = [];
+
+bool _remoteDescriptionSet = false;
+
+void listenIceCandidates(
+  bool isCaller,
+) async {
+  final callId = await getCallId();
+
+  _iceSubscription?.cancel();
+
+  _iceSubscription =
+      _firestoreService
+          .listenIceCandidates(
+            callId: callId,
+            isCaller: isCaller,
+          )
+          .listen((snapshot) async {
+    for (final doc in snapshot.docs) {
+      if (_addedCandidates.contains(doc.id)) {
+        continue;
+      }
+
+      _addedCandidates.add(doc.id);
+
+      final data =
+          doc.data() as Map<String, dynamic>;
+
+      final candidate = RTCIceCandidate(
+        data["candidate"],
+        data["sdpMid"],
+        data["sdpMLineIndex"],
+      );
+
+      if (_remoteDescriptionSet) {
+        await _webRTCService.addIceCandidate(
+          candidate,
+        );
+
+        print("🧊 ICE Added : ${doc.id}");
+      } else {
+        _pendingIceCandidates.add(candidate);
+
+        print(
+          "⏳ ICE Queued : ${doc.id}",
+        );
+      }
+    }
+  });
 }
 
 // ===========================
@@ -735,12 +1137,30 @@ Future<void> rejectCall() async {
 // End Call
 // ===========================
 
-Future<void> endCall() async {
+Future endCall(String callId) async {
 
-  final callId = await getCallId();
+  currentCallId = callId;
 
   await _firestoreService.endCall(
     callId: callId,
   );
+
+  await _webRTCService.dispose();
+
+  peerConnection = null;
+  localStream = null;
+  remoteStream = null;
+
+  _webRtcInitialized = false;
+  offerReceived = false;
+answerReceived = false;
+
+_addedCandidates.clear();
+_pendingIceCandidates.clear();
+_remoteDescriptionSet = false;
+
+currentCallId = null;
+
+  print("📴 Call Ended");
 }
 }
