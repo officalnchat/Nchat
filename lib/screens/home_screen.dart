@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import '../utils/app_colors.dart';
 import 'chat_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({super.key});
@@ -35,22 +36,45 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.search,
-              color: Colors.white,
-            ),
+actions: [
+  IconButton(
+    onPressed: () {},
+    icon: const Icon(
+      Icons.search,
+      color: Colors.white,
+    ),
+  ),
+
+  PopupMenuButton<String>(
+    icon: const Icon(
+      Icons.more_vert,
+      color: Colors.white,
+    ),
+    onSelected: (value) {
+      if (value == 'settings') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SettingsScreen(),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.more_vert,
-              color: Colors.white,
-            ),
-          ),
-        ],
+        );
+      }
+    },
+    itemBuilder: (context) => [
+      const PopupMenuItem<String>(
+        value: 'settings',
+        child: Row(
+          children: [
+            Icon(Icons.settings),
+            SizedBox(width: 10),
+            Text("Settings"),
+          ],
+        ),
+      ),
+    ],
+  ),
+],
+
       ),
 
       body: FutureBuilder<String>(

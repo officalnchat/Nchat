@@ -10,7 +10,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+    options:
+        DefaultFirebaseOptions.currentPlatform,
   );
 
   runApp(const MyApp());
@@ -19,10 +20,16 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final GlobalKey<NavigatorState>
+      navigatorKey =
+      GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return AppLifecycleHandler(
+      navigatorKey: navigatorKey,
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'NChat',
         theme: AppTheme.lightTheme,
