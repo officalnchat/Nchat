@@ -130,16 +130,14 @@ class _AppLockVerifyScreenState
       if (!mounted) return;
 
       if (isCorrect) {
-        // Correct PIN
-        await appLockService.resetFailedAttempts();
+  await appLockService.resetFailedAttempts();
 
-        if (!mounted) return;
+  if (!mounted) return;
 
-        Navigator.of(context).pop(true);
+  Navigator.of(context).pop<bool>(true);
 
-        return;
-      }
-
+  return;
+}
       // =====================================================
       // WRONG PIN
       // =====================================================

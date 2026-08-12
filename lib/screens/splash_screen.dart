@@ -27,6 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+
     checkLogin();
   }
 
@@ -43,54 +44,85 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    Widget nextScreen;
-
     // =========================================================
     // NOT LOGGED IN
     // =========================================================
 
     if (!isLoggedIn) {
-      nextScreen = const WelcomeScreen();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const WelcomeScreen(),
+        ),
+      );
+
+      return;
     }
 
     // =========================================================
     // PROFILE NOT COMPLETED
     // =========================================================
 
-    else if (!hasProfile) {
-      nextScreen = const ProfileSetupScreen();
+    if (!hasProfile) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const ProfileSetupScreen(),
+        ),
+      );
+
+      return;
     }
 
     // =========================================================
     // LOGGED IN + PROFILE COMPLETED
     // =========================================================
 
-    else {
-      final bool appLockEnabled =
-          await appLockService.isAppLockEnabled();
+    final bool appLockEnabled =
+        await appLockService.isAppLockEnabled();
+
+    if (!mounted) return;
+
+    // =========================================================
+    // APP LOCK ENABLED
+    // =========================================================
+
+    if (appLockEnabled) {
+      final result =
+          await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const AppLockVerifyScreen(),
+        ),
+      );
 
       if (!mounted) return;
 
-      if (appLockEnabled) {
-        // App Lock ON → Ask for PIN
-        nextScreen =
-            const AppLockVerifyScreen();
-      } else {
-        // App Lock OFF → Direct Home
-        nextScreen = HomeScreen();
+      // Correct PIN se AppLockVerifyScreen pop hua.
+      // Ab directly HomeScreen par jayenge.
+      if (result == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(),
+          ),
+        );
       }
+
+      return;
     }
 
     // =========================================================
-    // NAVIGATE
+    // APP LOCK DISABLED
     // =========================================================
-
-    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => nextScreen,
+        builder: (_) => HomeScreen(),
       ),
     );
   }

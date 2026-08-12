@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -39,17 +41,17 @@ class _AppLifecycleHandlerState
 
   bool _isLockScreenOpen = false;
 
+  Timer? _lockCheckTimer;
+
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance
-        .addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
 
     _setOnline();
 
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
       _appReady = true;
@@ -61,19 +63,16 @@ class _AppLifecycleHandlerState
   // =========================================================
 
   Future<void> _setOnline() async {
-    final userId =
-        await authService.getUserId();
+    try {
+      final userId =
+          await authService.getUserId();
 
-    debugPrint(
-      "🟢 ONLINE USER : $userId",
-    );
-
-    await firestoreService
-        .setUserOnline(userId);
-
-    debugPrint(
-      "🟢 ONLINE UPDATED",
-    );
+      await firestoreService.setUserOnline(userId);
+    } catch (e) {
+      debugPrint(
+        "ONLINE ERROR: $e",
+      );
+    }
   }
 
   // =========================================================
@@ -81,19 +80,16 @@ class _AppLifecycleHandlerState
   // =========================================================
 
   Future<void> _setOffline() async {
-    final userId =
-        await authService.getUserId();
+    try {
+      final userId =
+          await authService.getUserId();
 
-    debugPrint(
-      "🔴 OFFLINE USER : $userId",
-    );
-
-    await firestoreService
-        .setUserOffline(userId);
-
-    debugPrint(
-      "🔴 OFFLINE UPDATED",
-    );
+      await firestoreService.setUserOffline(userId);
+    } catch (e) {
+      debugPrint(
+        "OFFLINE ERROR: $e",
+      );
+    }
   }
 
   // =========================================================
@@ -114,15 +110,14 @@ class _AppLifecycleHandlerState
     }
 
     final enabled =
-        await appLockService
-            .isAppLockEnabled();
+        await appLockService.isAppLockEnabled();
+
+    if (!mounted) return;
 
     if (!enabled) {
       _shouldLockOnResume = false;
       return;
     }
-
-    if (!mounted) return;
 
     final navigator =
         widget.navigatorKey.currentState;
@@ -133,16 +128,33 @@ class _AppLifecycleHandlerState
 
     _isLockScreenOpen = true;
 
-    await navigator.push(
-      MaterialPageRoute(
-        builder: (_) =>
-            const AppLockVerifyScreen(),
-      ),
-    );
+    try {
+      // Give Flutter time to finish the previous
+      // lifecycle/navigation transition.
+      await Future.delayed(
+        const Duration(milliseconds: 250),
+      );
 
-    _isLockScreenOpen = false;
+      if (!mounted) return;
 
-    _shouldLockOnResume = false;
+      final currentNavigator =
+          widget.navigatorKey.currentState;
+
+      if (currentNavigator == null) {
+        _isLockScreenOpen = false;
+        return;
+      }
+
+      await currentNavigator.push(
+        MaterialPageRoute(
+          builder: (_) =>
+              const AppLockVerifyScreen(),
+        ),
+      );
+    } finally {
+      _isLockScreenOpen = false;
+      _shouldLockOnResume = false;
+    }
   }
 
   // =========================================================
@@ -161,7 +173,20 @@ class _AppLifecycleHandlerState
       case AppLifecycleState.resumed:
         _setOnline();
 
-        _checkAndShowAppLock();
+        // IMPORTANT:
+        // Do not immediately open App Lock.
+        // Wait until Flutter finishes restoring
+        // the application navigation stack.
+        _lockCheckTimer?.cancel();
+
+        _lockCheckTimer = Timer(
+          const Duration(milliseconds: 350),
+          () {
+            if (!mounted) return;
+
+            _checkAndShowAppLock();
+          },
+        );
 
         break;
 
@@ -205,8 +230,9 @@ class _AppLifecycleHandlerState
 
   @override
   void dispose() {
-    WidgetsBinding.instance
-        .removeObserver(this);
+    _lockCheckTimer?.cancel();
+
+    WidgetsBinding.instance.removeObserver(this);
 
     _setOffline();
 
