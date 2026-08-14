@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'cloudinary_service.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'auth_service.dart';
+import 'cloudinary_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
   final CloudinaryService _cloudinaryService =
-    CloudinaryService();
+      CloudinaryService();
 
   final AuthService _authService =
       AuthService();
@@ -26,17 +26,17 @@ class FirestoreService {
   // Profile Image
   // ===========================
 
- Future<String> uploadProfileImage({
-  required String userId,
-  required File imageFile,
-}) async {
-  final String? imageUrl =
-      await _cloudinaryService.uploadImage(
-    imageFile,
-  );
+  Future<String> uploadProfileImage({
+    required String userId,
+    required File imageFile,
+  }) async {
+    final String? imageUrl =
+        await _cloudinaryService.uploadImage(
+      imageFile,
+    );
 
-  return imageUrl ?? "";
-}
+    return imageUrl ?? "";
+  }
 
   // ===========================
   // Save User
@@ -68,11 +68,32 @@ class FirestoreService {
     return await _authService.getUserId();
   }
 
+  // ===========================
+  // FCM Token
+  // ===========================
+
+  Future<void> saveFcmToken({
+    required String userId,
+    required String token,
+  }) async {
+    await usersCollection.doc(userId).set({
+      'fcmToken': token,
+    }, SetOptions(merge: true));
+  }
+
+  // ===========================
+  // Get Users
+  // ===========================
+
   Stream<QuerySnapshot> getUsers() {
     return usersCollection
         .orderBy('createdAt')
         .snapshots();
   }
+
+  // ===========================
+  // Get User
+  // ===========================
 
   Stream<DocumentSnapshot> getUser(
     String userId,
@@ -86,17 +107,15 @@ class FirestoreService {
   // Send Text Message
   // ===========================
 
- Future<void> sendMessage({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required String message,
-
-  String? replyMessage,
-  String? replyType,
-  String? forwarded,
-})
-  async {
+  Future<void> sendMessage({
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String message,
+    String? replyMessage,
+    String? replyType,
+    String? forwarded,
+  }) async {
     await chatsCollection
         .doc(chatId)
         .collection('messages')
@@ -116,12 +135,14 @@ class FirestoreService {
       'type': 'text',
 
       'isStarred': false,
-      
-      'replyMessage': replyMessage ?? '',
-'replyType': replyType ?? '',
 
-       'forwarded': forwarded ?? '',
+      'replyMessage':
+          replyMessage ?? '',
+      'replyType':
+          replyType ?? '',
 
+      'forwarded':
+          forwarded ?? '',
     });
   }
 
@@ -130,17 +151,15 @@ class FirestoreService {
   // ===========================
 
   Future<void> sendImageMessage({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required String imageUrl,
-
-  String? caption,
-
-  String? replyMessage,
-  String? replyType,
-  String? forwarded,
-}) async {
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String imageUrl,
+    String? caption,
+    String? replyMessage,
+    String? replyType,
+    String? forwarded,
+  }) async {
     await chatsCollection
         .doc(chatId)
         .collection('messages')
@@ -148,10 +167,8 @@ class FirestoreService {
       'senderId': senderId,
       'receiverId': receiverId,
 
-      // No text for image messages
       'message': caption ?? '',
 
-      // Image URL
       'imageUrl': imageUrl,
 
       'timestamp':
@@ -166,51 +183,61 @@ class FirestoreService {
 
       'isStarred': false,
 
-      'replyMessage': replyMessage ?? '',
-'replyType': replyType ?? '',
+      'replyMessage':
+          replyMessage ?? '',
+      'replyType':
+          replyType ?? '',
 
-      'forwarded': forwarded ?? '',
-
+      'forwarded':
+          forwarded ?? '',
     });
   }
+
+  // ===========================
+  // Send Voice Message
+  // ===========================
+
   Future<void> sendVoiceMessage({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required String audioUrl,
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String audioUrl,
+    String? replyMessage,
+    String? replyType,
+    String? forwarded,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection("messages")
+        .add({
+      "senderId": senderId,
+      "receiverId": receiverId,
 
-  String? replyMessage,
-  String? replyType,
-  String? forwarded,
-}) async {
-  await chatsCollection
-      .doc(chatId)
-      .collection("messages")
-      .add({
-    "senderId": senderId,
-    "receiverId": receiverId,
+      "message": "",
+      "imageUrl": "",
+      "audioUrl": audioUrl,
 
-    "message": "",
-    "imageUrl": "",
-    "audioUrl": audioUrl,
+      "type": "audio",
 
-    "type": "audio",
+      "timestamp":
+          FieldValue.serverTimestamp(),
 
-    "timestamp": FieldValue.serverTimestamp(),
+      "status": 1,
 
-    "status": 1,
+      "isStarred": false,
 
-    "isStarred": false,
+      "forwarded":
+          forwarded ?? "",
 
-    "forwarded": forwarded ?? "",
+      "reaction": "",
 
-    "reaction": "",
+      "replyMessage":
+          replyMessage ?? "",
 
-    "replyMessage": replyMessage ?? "",
-
-    "replyType": replyType ?? "",
-  });
-}
+      "replyType":
+          replyType ?? "",
+    });
+  }
 
   // ===========================
   // Messages Stream
@@ -318,353 +345,340 @@ class FirestoreService {
       'isTyping': typing,
     });
   }
+
   // ===========================
-// Delete Message
-// ===========================
+  // Delete Message
+  // ===========================
 
-Future<void> deleteMessage({
-  required String chatId,
-  required String messageId,
-}) async {
-  await chatsCollection
-      .doc(chatId)
-      .collection("messages")
-      .doc(messageId)
-      .delete();
-}
-Future<void> deleteMessageForMe({
-  required String chatId,
-  required String messageId,
-  required String userId,
-}) async {
-  await chatsCollection
-      .doc(chatId)
-      .collection("messages")
-      .doc(messageId)
-      .update({
-    "deletedFor": FieldValue.arrayUnion([
-      userId,
-    ]),
-  });
-}
-// ===========================
-// Star / Unstar Message
-// ===========================
+  Future<void> deleteMessage({
+    required String chatId,
+    required String messageId,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection("messages")
+        .doc(messageId)
+        .delete();
+  }
 
-Future<void> toggleStarMessage({
-  required String chatId,
-  required String messageId,
-  required bool isStarred,
-}) async {
-  await chatsCollection
-      .doc(chatId)
-      .collection("messages")
-      .doc(messageId)
-      .update({
-    "isStarred": !isStarred,
-  });
-}
- // ===========================
-// Message Reaction
-// ===========================
+  Future<void> deleteMessageForMe({
+    required String chatId,
+    required String messageId,
+    required String userId,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection("messages")
+        .doc(messageId)
+        .update({
+      "deletedFor":
+          FieldValue.arrayUnion([
+        userId,
+      ]),
+    });
+  }
 
-Future<void> setReaction({
-  required String chatId,
-  required String messageId,
-  required String emoji,
-}) async {
-  await chatsCollection
-      .doc(chatId)
-      .collection("messages")
-      .doc(messageId)
-      .update({
-    "reaction": emoji,
-  });
-}
+  // ===========================
+  // Star / Unstar Message
+  // ===========================
 
-// ===========================
-// Call Id
-// ===========================
+  Future<void> toggleStarMessage({
+    required String chatId,
+    required String messageId,
+    required bool isStarred,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection("messages")
+        .doc(messageId)
+        .update({
+      "isStarred": !isStarred,
+    });
+  }
 
-String getCallId({
-  required String user1,
-  required String user2,
-}) {
-  final ids = [
-    user1,
-    user2,
-  ]..sort();
+  // ===========================
+  // Message Reaction
+  // ===========================
 
-  return ids.join("_");
-}
+  Future<void> setReaction({
+    required String chatId,
+    required String messageId,
+    required String emoji,
+  }) async {
+    await chatsCollection
+        .doc(chatId)
+        .collection("messages")
+        .doc(messageId)
+        .update({
+      "reaction": emoji,
+    });
+  }
 
-// ===========================
-// Start Voice Call
-// ===========================
+  // ===========================
+  // Call Id
+  // ===========================
 
-Future<String> startVoiceCall({
-  required String callerId,
-  required String receiverId,
-}) async {
+  String getCallId({
+    required String user1,
+    required String user2,
+  }) {
+    final ids = [
+      user1,
+      user2,
+    ]..sort();
 
-  final callId = getCallId(
-    user1: callerId,
-    user2: receiverId,
-  );
+    return ids.join("_");
+  }
 
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .set({
+  // ===========================
+  // Start Voice Call
+  // ===========================
 
-    "callId": callId,
+  Future<String> startVoiceCall({
+    required String callerId,
+    required String receiverId,
+  }) async {
+    final callId = getCallId(
+      user1: callerId,
+      user2: receiverId,
+    );
 
-    "callerId": callerId,
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .set({
+      "callId": callId,
+      "callerId": callerId,
+      "receiverId": receiverId,
+      "type": "voice",
+      "status": "calling",
+      "createdAt":
+          FieldValue.serverTimestamp(),
+      "acceptedAt": null,
+      "endedAt": null,
+    });
 
-    "receiverId": receiverId,
+    return callId;
+  }
 
-    "type": "voice",
+  // ===========================
+  // Listen Incoming Call
+  // ===========================
 
-    "status": "calling",
+  Stream listenIncomingCall(
+    String userId,
+  ) {
+    return _firestore
+        .collection("calls")
+        .where(
+          "receiverId",
+          isEqualTo: userId,
+        )
+        .where(
+          "status",
+          whereIn: [
+            "calling",
+            "ringing",
+          ],
+        )
+        .snapshots();
+  }
 
-    "createdAt":
-        FieldValue.serverTimestamp(),
+  // ===========================
+  // Listen Call
+  // ===========================
 
-    "acceptedAt": null,
+  Stream<DocumentSnapshot> listenCall(
+    String callId,
+  ) {
+    return _firestore
+        .collection("calls")
+        .doc(callId)
+        .snapshots();
+  }
 
-    "endedAt": null,
+  // ===========================
+  // Accept Call
+  // ===========================
 
-  });
+  Future<void> acceptCall({
+    required String callId,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "status": "accepted",
+      "acceptedAt":
+          FieldValue.serverTimestamp(),
+    });
+  }
 
-  return callId;
-}
-// ===========================
-// Listen Incoming Call
-// ===========================
+  // ===========================
+  // Reject Call
+  // ===========================
 
-Stream listenIncomingCall(
-String userId,
-) {
+  Future<void> rejectCall({
+    required String callId,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "status": "rejected",
+    });
+  }
 
-return _firestore
-    .collection("calls")
-    .where(
-      "receiverId",
-      isEqualTo: userId,
-    )
-    .where(
-      "status",
-      whereIn: [
-        "calling",
-        "ringing",
-      ],
-    )
-    .snapshots();
+  // ===========================
+  // End Call
+  // ===========================
 
-}
+  Future<void> endCall({
+    required String callId,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "status": "ended",
+      "endedAt":
+          FieldValue.serverTimestamp(),
+    });
+  }
 
-// ===========================
-// Listen Call
-// ===========================
+  // ===========================
+  // Clear Call Data
+  // ===========================
 
-Stream<DocumentSnapshot> listenCall(
-  String callId,
-) {
-  return _firestore
-      .collection("calls")
-      .doc(callId)
-      .snapshots();
-}
+  Future clearCallData({
+    required String callId,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "offer":
+          FieldValue.delete(),
+      "answer":
+          FieldValue.delete(),
+      "status":
+          "ended",
+      "updatedAt":
+          FieldValue.serverTimestamp(),
+    });
 
-// ===========================
-// Accept Call
-// ===========================
+    print("🧹 Call Data Cleared");
+  }
 
-Future<void> acceptCall({
-  required String callId,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
+  // ===========================
+  // Ringing Call
+  // ===========================
 
-    "status": "accepted",
+  Future<void> setCallRinging({
+    required String callId,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "status": "ringing",
+    });
+  }
 
-    "acceptedAt":
-        FieldValue.serverTimestamp(),
+  // ===========================
+  // Save Offer
+  // ===========================
 
-  });
-}
+  Future<void> saveOffer({
+    required String callId,
+    required RTCSessionDescription offer,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "offer": {
+        "sdp": offer.sdp,
+        "type": offer.type,
+      },
+    });
+  }
 
-// ===========================
-// Reject Call
-// ===========================
+  // ===========================
+  // Save Answer
+  // ===========================
 
-Future<void> rejectCall({
-  required String callId,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
-    "status": "rejected",
-  });
-}
+  Future<void> saveAnswer({
+    required String callId,
+    required RTCSessionDescription answer,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .update({
+      "answer": {
+        "sdp": answer.sdp,
+        "type": answer.type,
+      },
+    });
+  }
 
-// ===========================
-// End Call
-// ===========================
+  // ===========================
+  // Get Call Stream
+  // ===========================
 
-Future<void> endCall({
-  required String callId,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
+  Stream<DocumentSnapshot> getCallStream(
+    String callId,
+  ) {
+    return _firestore
+        .collection("calls")
+        .doc(callId)
+        .snapshots();
+  }
 
-    "status": "ended",
+  // ===========================
+  // Save ICE Candidate
+  // ===========================
 
-    "endedAt":
-        FieldValue.serverTimestamp(),
+  Future<void> saveIceCandidate({
+    required String callId,
+    required RTCIceCandidate candidate,
+    required bool isCaller,
+  }) async {
+    await _firestore
+        .collection("calls")
+        .doc(callId)
+        .collection(
+          isCaller
+              ? "callerCandidates"
+              : "receiverCandidates",
+        )
+        .add({
+      "candidate":
+          candidate.candidate,
+      "sdpMid":
+          candidate.sdpMid,
+      "sdpMLineIndex":
+          candidate.sdpMLineIndex,
+    });
+  }
 
-  });
-}
-// ===========================
-// Clear Call Data
-// ===========================
+  // ===========================
+  // Listen ICE Candidates
+  // ===========================
 
-Future clearCallData({
-required String callId,
-}) async {
-
-await _firestore
-.collection("calls")
-.doc(callId)
-.update({
-
-"offer":
-    FieldValue.delete(),
-
-"answer":
-    FieldValue.delete(),
-
-"status":
-    "ended",
-
-"updatedAt":
-    FieldValue.serverTimestamp(),
-
-});
-
-print("🧹 Call Data Cleared");
-
-}
-// ===========================
-// Ringing Call
-// ===========================
-
-Future<void> setCallRinging({
-  required String callId,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
-    "status": "ringing",
-  });
-}
-// ===========================
-// Save Offer
-// ===========================
-
-Future<void> saveOffer({
-  required String callId,
-  required RTCSessionDescription offer,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
-    "offer": {
-      "sdp": offer.sdp,
-      "type": offer.type,
-    },
-  });
-}
-
-// ===========================
-// Save Answer
-// ===========================
-
-Future<void> saveAnswer({
-  required String callId,
-  required RTCSessionDescription answer,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .update({
-    "answer": {
-      "sdp": answer.sdp,
-      "type": answer.type,
-    },
-  });
-}
-
-// ===========================
-// Get Call Stream
-// ===========================
-
-Stream<DocumentSnapshot> getCallStream(
-  String callId,
-) {
-  return _firestore
-      .collection("calls")
-      .doc(callId)
-      .snapshots();
-}
-// ===========================
-// Save ICE Candidate
-// ===========================
-
-Future<void> saveIceCandidate({
-  required String callId,
-  required RTCIceCandidate candidate,
-  required bool isCaller,
-}) async {
-  await _firestore
-      .collection("calls")
-      .doc(callId)
-      .collection(
-        isCaller
-            ? "callerCandidates"
-            : "receiverCandidates",
-      )
-      .add({
-    "candidate": candidate.candidate,
-    "sdpMid": candidate.sdpMid,
-    "sdpMLineIndex":
-        candidate.sdpMLineIndex,
-  });
-}
-
-// ===========================
-// Listen ICE Candidates
-// ===========================
-
-Stream<QuerySnapshot> listenIceCandidates({
-  required String callId,
-  required bool isCaller,
-}) {
-  return _firestore
-      .collection("calls")
-      .doc(callId)
-      .collection(
-        isCaller
-            ? "receiverCandidates"
-            : "callerCandidates",
-      )
-      .snapshots();
-}
+  Stream<QuerySnapshot> listenIceCandidates({
+    required String callId,
+    required bool isCaller,
+  }) {
+    return _firestore
+        .collection("calls")
+        .doc(callId)
+        .collection(
+          isCaller
+              ? "receiverCandidates"
+              : "callerCandidates",
+        )
+        .snapshots();
+  }
 }
