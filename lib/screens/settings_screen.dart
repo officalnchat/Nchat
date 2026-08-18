@@ -4,6 +4,7 @@ import '../services/app_lock_service.dart';
 import '../utils/app_colors.dart';
 import 'app_lock_setup_screen.dart';
 import 'app_lock_management_screen.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -139,16 +140,42 @@ class _SettingsScreenState
             ),
           ),
 
-          ListTile(
-            leading:
-                const Icon(Icons.person_outline),
-            title:
-                const Text("Phone Number"),
-            subtitle: const Text(
-              "Your registered phone number",
-            ),
-            onTap: () {},
-          ),
+         ListTile(
+  leading: const Icon(
+    Icons.person_outline,
+  ),
+  title: const Text(
+    "Profile",
+  ),
+  subtitle: const Text(
+    "Edit your name, photo and about",
+  ),
+  trailing: const Icon(
+    Icons.chevron_right,
+  ),
+  onTap: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const ProfileScreen(),
+      ),
+    );
+  },
+),
+
+ListTile(
+  leading: const Icon(
+    Icons.phone_outlined,
+  ),
+  title: const Text(
+    "Phone Number",
+  ),
+  subtitle: const Text(
+    "Your registered phone number",
+  ),
+  onTap: () {},
+),
 
           const Divider(),
 

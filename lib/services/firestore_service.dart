@@ -102,6 +102,29 @@ class FirestoreService {
         .doc(userId)
         .snapshots();
   }
+    // ===========================
+  // Update Profile
+  // ===========================
+
+  Future<void> updateProfile({
+    required String userId,
+    required String name,
+    required String about,
+    String? photoUrl,
+  }) async {
+    final Map<String, dynamic> data = {
+      'name': name,
+      'about': about,
+    };
+
+    if (photoUrl != null) {
+      data['photoUrl'] = photoUrl;
+    }
+
+    await usersCollection
+        .doc(userId)
+        .update(data);
+  }
 
   // ===========================
   // Send Text Message
