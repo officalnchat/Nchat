@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
-import 'services/theme_service.dart';
+import 'services/theme_controller.dart';
 import 'utils/app_theme.dart';
 import 'widgets/app_lifecycle_handler.dart';
 
@@ -57,48 +57,26 @@ Future<void> main() async {
   // Notification Service
   // ---------------------------------------------------------
 
-  final notificationService = NotificationService();
+  final notificationService =
+      NotificationService();
 
   await notificationService.initialize();
 
   // ---------------------------------------------------------
-  // Theme Service
+  // Theme Controller
   // ---------------------------------------------------------
 
-  final themeService = ThemeService();
+  final themeController =
+      ThemeController.instance;
 
-  final themeModeString =
-      await themeService.getThemeMode();
-
-  // ---------------------------------------------------------
-  // Convert saved string to ThemeMode
-  // ---------------------------------------------------------
-
-  ThemeMode themeMode;
-
-  switch (themeModeString) {
-    case 'dark':
-      themeMode = ThemeMode.dark;
-      break;
-
-    case 'light':
-      themeMode = ThemeMode.light;
-      break;
-
-    case 'system':
-    default:
-      themeMode = ThemeMode.system;
-      break;
-  }
+  await themeController.initialize();
 
   // ---------------------------------------------------------
   // Start App
   // ---------------------------------------------------------
 
   runApp(
-    MyApp(
-      themeMode: themeMode,
-    ),
+    const MyApp(),
   );
 
   // ---------------------------------------------------------
@@ -106,66 +84,65 @@ Future<void> main() async {
   // closed application.
   // ---------------------------------------------------------
 
-  notificationService.handlePendingInitialNotification();
+  notificationService
+      .handlePendingInitialNotification();
 }
 
 // =========================================================
 // MY APP
 // =========================================================
 
-class MyApp extends StatefulWidget {
-  final ThemeMode themeMode;
-
+class MyApp extends StatelessWidget {
   const MyApp({
     super.key,
-    required this.themeMode,
   });
 
-  static final GlobalKey<NavigatorState> navigatorKey =
+  static final GlobalKey<NavigatorState>
+      navigatorKey =
       GlobalKey<NavigatorState>();
 
   @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-// =========================================================
-// MY APP STATE
-// =========================================================
-
-class _MyAppState extends State<MyApp> {
-  late ThemeMode themeMode;
-
-  @override
-  void initState() {
-    super.initState();
-
-    themeMode = widget.themeMode;
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final themeController =
+        ThemeController.instance;
+
     return AppLifecycleHandler(
       navigatorKey: MyApp.navigatorKey,
-      child: MaterialApp(
-        navigatorKey: MyApp.navigatorKey,
-        debugShowCheckedModeBanner: false,
-        title: 'NChat',
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable:
+            themeController.themeMode,
+        builder: (
+          context,
+          currentThemeMode,
+          child,
+        ) {
+          return MaterialApp(
+            navigatorKey:
+                MyApp.navigatorKey,
+            debugShowCheckedModeBanner: false,
+            title: 'NChat',
 
-        // -----------------------------------------------------
-        // Themes
-        // -----------------------------------------------------
+            // -------------------------------------------------
+            // Themes
+            // -------------------------------------------------
 
-        theme: AppTheme.lightTheme,
+            theme:
+                AppTheme.lightTheme,
 
-        darkTheme: AppTheme.darkTheme,
+            darkTheme:
+                AppTheme.darkTheme,
 
-        themeMode: themeMode,
+            themeMode:
+                currentThemeMode,
 
-        // -----------------------------------------------------
-        // Home
-        // -----------------------------------------------------
+            // -------------------------------------------------
+            // Home
+            // -------------------------------------------------
 
-        home: const SplashScreen(),
+            home:
+                const SplashScreen(),
+          );
+        },
       ),
     );
   }

@@ -7,26 +7,31 @@ import 'chat_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   final FirestoreService firestoreService =
       FirestoreService();
 
-
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor:
+          theme.scaffoldBackgroundColor,
+
+      // =====================================================
+      // APP BAR
+      // =====================================================
 
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor:
+            AppColors.primary,
         elevation: 0,
         title: const Text(
           "NChat",
@@ -36,53 +41,60 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-actions: [
-  IconButton(
-    onPressed: () {},
-    icon: const Icon(
-      Icons.search,
-      color: Colors.white,
-    ),
-  ),
-
-  PopupMenuButton<String>(
-    icon: const Icon(
-      Icons.more_vert,
-      color: Colors.white,
-    ),
-    onSelected: (value) {
-      if (value == 'settings') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const SettingsScreen(),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(
+              Icons.search,
+              color: Colors.white,
+            ),
           ),
-        );
-      }
-    },
-    itemBuilder: (context) => [
-      const PopupMenuItem<String>(
-        value: 'settings',
-        child: Row(
-          children: [
-            Icon(Icons.settings),
-            SizedBox(width: 10),
-            Text("Settings"),
-          ],
-        ),
-      ),
-    ],
-  ),
-],
 
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.more_vert,
+              color: Colors.white,
+            ),
+            onSelected: (value) {
+              if (value == 'settings') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const SettingsScreen(),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings),
+                    SizedBox(width: 10),
+                    Text("Settings"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
+
+      // =====================================================
+      // USERS
+      // =====================================================
 
       body: FutureBuilder<String>(
-        future: firestoreService.getCurrentUserId(),
-        builder: (context, userSnapshot) {
+        future:
+            firestoreService.getCurrentUserId(),
+        builder:
+            (context, userSnapshot) {
           if (!userSnapshot.hasData) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child:
+                  CircularProgressIndicator(),
             );
           }
 
@@ -90,8 +102,10 @@ actions: [
               userSnapshot.data!;
 
           return StreamBuilder<QuerySnapshot>(
-            stream: firestoreService.getUsers(),
-            builder: (context, snapshot) {
+            stream:
+                firestoreService.getUsers(),
+            builder:
+                (context, snapshot) {
               if (snapshot.hasError) {
                 return const Center(
                   child: Text(
@@ -108,39 +122,53 @@ actions: [
               }
 
               final users =
-                  snapshot.data!.docs.where((doc) {
-                final data =
-                    doc.data() as Map<String, dynamic>;
+                  snapshot.data!.docs.where(
+                (doc) {
+                  final data =
+                      doc.data()
+                          as Map<String, dynamic>;
 
-                return data["userId"] !=
-                    currentUserId;
-              }).toList();
+                  return data["userId"] !=
+                      currentUserId;
+                },
+              ).toList();
 
               if (users.isEmpty) {
                 return const Center(
-                  child: Text("No users found"),
+                  child: Text(
+                    "No users found",
+                  ),
                 );
               }
 
               return ListView.builder(
                 itemCount: users.length,
-                itemBuilder: (context, index) {
+                itemBuilder:
+                    (context, index) {
                   final data =
                       users[index].data()
                           as Map<String, dynamic>;
 
-                    return ChatTile(
-                     userId: data["userId"] ?? "",
-                      name: data["name"] ?? "",
-                       message: data["about"] ?? "",
-                       photoUrl: data["photoUrl"] ?? "",
-                   );
+                  return ChatTile(
+                    userId:
+                        data["userId"] ?? "",
+                    name:
+                        data["name"] ?? "",
+                    message:
+                        data["about"] ?? "",
+                    photoUrl:
+                        data["photoUrl"] ?? "",
+                  );
                 },
               );
             },
           );
         },
       ),
+
+      // =====================================================
+      // FLOATING ACTION BUTTON
+      // =====================================================
 
       floatingActionButton:
           FloatingActionButton(
@@ -156,40 +184,77 @@ actions: [
   }
 }
 
+// =========================================================
+// CHAT TILE
+// =========================================================
+
 class ChatTile extends StatelessWidget {
   final String userId;
   final String name;
   final String message;
-    final String photoUrl;
+  final String photoUrl;
 
   const ChatTile({
-  super.key,
-  required this.userId,
-  required this.name,
-  required this.message,
-  required this.photoUrl,
-});
+    super.key,
+    required this.userId,
+    required this.name,
+    required this.message,
+    required this.photoUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme =
+        Theme.of(context);
+
+    final textTheme =
+        theme.textTheme;
+
     return ListTile(
+      // ===================================================
+      // PROFILE PHOTO
+      // ===================================================
+
       leading: CircleAvatar(
-  radius: 28,
-  backgroundImage: photoUrl.isNotEmpty
-      ? NetworkImage(photoUrl)
-      : null,
-  child: photoUrl.isEmpty
-      ? const Icon(Icons.person)
-      : null,
-),
+        radius: 28,
+        backgroundImage:
+            photoUrl.isNotEmpty
+                ? NetworkImage(photoUrl)
+                : null,
+        child: photoUrl.isEmpty
+            ? const Icon(
+                Icons.person,
+              )
+            : null,
+      ),
+
+      // ===================================================
+      // USER NAME
+      // ===================================================
+
       title: Text(
         name,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
+        style: textTheme.titleMedium?.copyWith(
+          fontWeight:
+              FontWeight.bold,
           fontSize: 17,
         ),
       ),
-      subtitle: Text(message),
+
+      // ===================================================
+      // ABOUT / MESSAGE
+      // ===================================================
+
+      subtitle: Text(
+        message,
+        style:
+            textTheme.bodyMedium,
+      ),
+
+      // ===================================================
+      // OPEN CHAT
+      // ===================================================
+
       onTap: () {
         Navigator.push(
           context,
