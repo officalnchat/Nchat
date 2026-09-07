@@ -6,6 +6,7 @@ import '../utils/app_colors.dart';
 import 'app_lock_setup_screen.dart';
 import 'app_lock_management_screen.dart';
 import 'profile_screen.dart';
+import 'about_nchat_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -353,6 +354,10 @@ class _SettingsScreenState
             ),
           ),
 
+          // =================================================
+          // PROFILE
+          // =================================================
+
           ListTile(
             leading: const Icon(
               Icons.person_outline,
@@ -376,6 +381,10 @@ class _SettingsScreenState
               );
             },
           ),
+
+          // =================================================
+          // PHONE NUMBER
+          // =================================================
 
           ListTile(
             leading: const Icon(
@@ -482,6 +491,10 @@ class _SettingsScreenState
             ),
           ),
 
+          // =================================================
+          // MESSAGE NOTIFICATIONS
+          // =================================================
+
           ListTile(
             leading: const Icon(
               Icons.notifications_none,
@@ -494,6 +507,10 @@ class _SettingsScreenState
             ),
             onTap: () {},
           ),
+
+          // =================================================
+          // CALL NOTIFICATIONS
+          // =================================================
 
           ListTile(
             leading: const Icon(
@@ -533,6 +550,10 @@ class _SettingsScreenState
               ),
             ),
           ),
+
+          // =================================================
+          // CHAT SETTINGS
+          // =================================================
 
           ListTile(
             leading: const Icon(
@@ -574,6 +595,10 @@ class _SettingsScreenState
               ),
             ),
           ),
+
+          // =================================================
+          // THEME
+          // =================================================
 
           ValueListenableBuilder<
               ThemeMode>(
@@ -630,31 +655,47 @@ class _SettingsScreenState
             ),
           ),
 
+          // =================================================
+          // ABOUT NCHAT
+          // =================================================
+
           ListTile(
             leading: const Icon(
               Icons.info_outline,
             ),
-            title:
-                const Text(
+            title: const Text(
               "About NChat",
             ),
-            subtitle:
-                const Text(
+            subtitle: const Text(
               "Information about NChat",
             ),
-            onTap: () {},
+            trailing: const Icon(
+              Icons.chevron_right,
+            ),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AboutNChatScreen(),
+                ),
+              );
+            },
           ),
+
+          // =================================================
+          // VERSION
+          // DO NOT CHANGE / NON-CLICKABLE
+          // =================================================
 
           ListTile(
             leading: const Icon(
               Icons.apps,
             ),
-            title:
-                const Text(
+            title: const Text(
               "Version",
             ),
-            subtitle:
-                const Text(
+            subtitle: const Text(
               "NChat 1.0.0",
             ),
             onTap: () {},
