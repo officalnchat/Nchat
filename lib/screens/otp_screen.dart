@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+
+import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
 import 'profile_setup_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String verificationId;
+  final String phoneNumber;
 
   const OtpScreen({
     super.key,
     required this.verificationId,
+    required this.phoneNumber,
   });
 
   @override
@@ -15,7 +19,10 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final TextEditingController otpController = TextEditingController();
+  final TextEditingController otpController =
+      TextEditingController();
+
+  final AuthService authService = AuthService();
 
   bool isLoading = false;
 
@@ -25,7 +32,9 @@ class _OtpScreenState extends State<OtpScreen> {
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter a valid 6-digit OTP"),
+          content: Text(
+            "Please enter a valid 6-digit OTP",
+          ),
         ),
       );
       return;
@@ -36,7 +45,16 @@ class _OtpScreenState extends State<OtpScreen> {
     });
 
     // Temporary Login
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(
+      const Duration(seconds: 1),
+    );
+
+    // Save phone number locally for future use.
+    await authService.savePhoneNumber(
+      widget.phoneNumber,
+    );
+
+    if (!mounted) return;
 
     setState(() {
       isLoading = false;
@@ -51,7 +69,9 @@ class _OtpScreenState extends State<OtpScreen> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => const ProfileSetupScreen(),
+        builder: (context) => ProfileSetupScreen(
+          phoneNumber: widget.phoneNumber,
+        ),
       ),
       (route) => false,
     );
@@ -73,13 +93,16 @@ class _OtpScreenState extends State<OtpScreen> {
         centerTitle: true,
         title: const Text(
           "OTP Verification",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+          ),
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(25),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
 
@@ -106,23 +129,36 @@ class _OtpScreenState extends State<OtpScreen> {
 
             TextField(
               controller: otpController,
-              keyboardType: TextInputType.number,
+              keyboardType:
+                  TextInputType.number,
               maxLength: 6,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+              ),
               decoration: InputDecoration(
                 hintText: "Enter OTP",
                 counterText: "",
-                hintStyle: const TextStyle(color: Colors.white54),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white),
-                  borderRadius: BorderRadius.circular(12),
+                hintStyle: const TextStyle(
+                  color: Colors.white54,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
+                enabledBorder:
+                    OutlineInputBorder(
+                  borderSide:
+                      const BorderSide(
+                    color: Colors.white,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                focusedBorder:
+                    OutlineInputBorder(
+                  borderSide:
+                      const BorderSide(
                     color: Colors.white,
                     width: 2,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius:
+                      BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -133,10 +169,15 @@ class _OtpScreenState extends State<OtpScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: isLoading ? null : verifyOTP,
-                style: ElevatedButton.styleFrom(
+                onPressed:
+                    isLoading
+                        ? null
+                        : verifyOTP,
+                style:
+                    ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
+                  foregroundColor:
+                      AppColors.primary,
                 ),
                 child: isLoading
                     ? const CircularProgressIndicator()
@@ -144,7 +185,8 @@ class _OtpScreenState extends State<OtpScreen> {
                         "Verify OTP",
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
               ),

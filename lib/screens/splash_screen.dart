@@ -65,11 +65,17 @@ class _SplashScreenState extends State<SplashScreen> {
     // =========================================================
 
     if (!hasProfile) {
+      final String phoneNumber =
+          await authService.getPhoneNumber();
+
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              const ProfileSetupScreen(),
+          builder: (_) => ProfileSetupScreen(
+            phoneNumber: phoneNumber,
+          ),
         ),
       );
 

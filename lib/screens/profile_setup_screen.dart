@@ -10,7 +10,12 @@ import '../utils/app_colors.dart';
 import 'home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  final String phoneNumber;
+
+  const ProfileSetupScreen({
+    super.key,
+    required this.phoneNumber,
+  });
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -78,22 +83,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       final userId = await authService.getUserId();
 
-      String photoUrl = ""; 
+      String photoUrl = "";
 
- if (profileImage != null) {
-  try {
-    photoUrl = await firestoreService.uploadProfileImage(
-      userId: userId,
-      imageFile: profileImage!,
-    );
-  } catch (e) {
-    // Storage available nahi hai to bhi profile save hoga
-    photoUrl = "";
-  }
-}
+      if (profileImage != null) {
+        try {
+          photoUrl = await firestoreService.uploadProfileImage(
+            userId: userId,
+            imageFile: profileImage!,
+          );
+        } catch (e) {
+          // Storage available nahi hai to bhi profile save hoga.
+          photoUrl = "";
+        }
+      }
 
       await firestoreService.saveUser(
         userId: userId,
+        phoneNumber: widget.phoneNumber,
         name: name,
         about: about,
         photoUrl: photoUrl,
@@ -108,10 +114,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeScreen(),
+          builder: (_) => const HomeScreen(),
         ),
       );
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
@@ -146,6 +154,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
+
             Stack(
               children: [
                 CircleAvatar(
@@ -178,7 +187,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 40),
+
             TextField(
               controller: nameController,
               decoration: InputDecoration(
@@ -190,7 +201,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
+
             TextField(
               controller: aboutController,
               decoration: InputDecoration(
@@ -202,7 +215,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ),
             ),
+
             const Spacer(),
+
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -223,6 +238,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       ),
               ),
             ),
+
             const SizedBox(height: 20),
           ],
         ),

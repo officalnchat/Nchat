@@ -44,12 +44,14 @@ class FirestoreService {
 
   Future<void> saveUser({
     required String userId,
+    required String phoneNumber,
     required String name,
     required String about,
     String? photoUrl,
   }) async {
     await usersCollection.doc(userId).set({
       'userId': userId,
+      'phoneNumber': phoneNumber,
       'name': name,
       'about': about,
       'photoUrl': photoUrl ?? '',
@@ -92,6 +94,80 @@ class FirestoreService {
   }
 
   // ===========================
+  // Get NChat Users From Contacts
+  // ===========================
+
+  Future<List<Map<String, dynamic>>>
+      getUsersFromContacts({
+    required List<String> phoneNumbers,
+    required String currentUserId,
+  }) async {
+    if (phoneNumbers.isEmpty) {
+      return [];
+    }
+
+    final List<Map<String, dynamic>> users = [];
+
+    // Firestore whereIn has a limit on the
+    // number of values in a single query.
+    // Therefore contacts are processed in batches.
+    const int batchSize = 30;
+
+    for (
+      int i = 0;
+      i < phoneNumbers.length;
+      i += batchSize
+    ) {
+      final int end =
+          (i + batchSize < phoneNumbers.length)
+              ? i + batchSize
+              : phoneNumbers.length;
+
+      final List<String> batch =
+          phoneNumbers.sublist(i, end);
+
+      final QuerySnapshot snapshot =
+          await usersCollection
+              .where(
+                'phoneNumber',
+                whereIn: batch,
+              )
+              .get();
+
+      for (final doc in snapshot.docs) {
+        final data =
+            doc.data() as Map<String, dynamic>;
+
+        final String userId =
+            data['userId']?.toString() ?? '';
+
+        // Never show the current user.
+        if (userId.isEmpty ||
+            userId == currentUserId) {
+          continue;
+        }
+
+        users.add(data);
+      }
+    }
+
+    // Remove duplicate users.
+    final Map<String, Map<String, dynamic>>
+        uniqueUsers = {};
+
+    for (final user in users) {
+      final String userId =
+          user['userId']?.toString() ?? '';
+
+      if (userId.isNotEmpty) {
+        uniqueUsers[userId] = user;
+      }
+    }
+
+    return uniqueUsers.values.toList();
+  }
+
+  // ===========================
   // Get User
   // ===========================
 
@@ -102,7 +178,8 @@ class FirestoreService {
         .doc(userId)
         .snapshots();
   }
-    // ===========================
+
+  // ===========================
   // Update Profile
   // ===========================
 
@@ -189,11 +266,8 @@ class FirestoreService {
         .add({
       'senderId': senderId,
       'receiverId': receiverId,
-
       'message': caption ?? '',
-
       'imageUrl': imageUrl,
-
       'timestamp':
           FieldValue.serverTimestamp(),
 
@@ -235,28 +309,19 @@ class FirestoreService {
         .add({
       "senderId": senderId,
       "receiverId": receiverId,
-
       "message": "",
       "imageUrl": "",
       "audioUrl": audioUrl,
-
       "type": "audio",
-
       "timestamp":
           FieldValue.serverTimestamp(),
-
       "status": 1,
-
       "isStarred": false,
-
       "forwarded":
           forwarded ?? "",
-
       "reaction": "",
-
       "replyMessage":
           replyMessage ?? "",
-
       "replyType":
           replyType ?? "",
     });

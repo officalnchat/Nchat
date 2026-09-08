@@ -12,7 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController phoneController =
+      TextEditingController();
 
   bool isLoading = false;
 
@@ -22,7 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (phone.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter a valid 10-digit mobile number"),
+          content: Text(
+            "Please enter a valid 10-digit mobile number",
+          ),
         ),
       );
       return;
@@ -31,11 +34,18 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const OtpScreen(
+        builder: (context) => OtpScreen(
           verificationId: "temporary_login",
+          phoneNumber: phone,
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    phoneController.dispose();
+    super.dispose();
   }
 
   @override
@@ -48,13 +58,16 @@ class _LoginScreenState extends State<LoginScreen> {
         centerTitle: true,
         title: const Text(
           "Login",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+          ),
         ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(25),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
 
@@ -86,22 +99,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(10),
               ],
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+              ),
               decoration: InputDecoration(
                 hintText: "Mobile Number",
-                hintStyle: const TextStyle(color: Colors.white54),
-                prefixText: "+91 ",
-                prefixStyle: const TextStyle(color: Colors.white),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white),
-                  borderRadius: BorderRadius.circular(12),
+                hintStyle: const TextStyle(
+                  color: Colors.white54,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
+                prefixText: "+91 ",
+                prefixStyle: const TextStyle(
+                  color: Colors.white,
+                ),
+                enabledBorder:
+                    OutlineInputBorder(
+                  borderSide:
+                      const BorderSide(
+                    color: Colors.white,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                focusedBorder:
+                    OutlineInputBorder(
+                  borderSide:
+                      const BorderSide(
                     color: Colors.white,
                     width: 2,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius:
+                      BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -115,7 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: sendOTP,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
+                  foregroundColor:
+                      AppColors.primary,
                 ),
                 child: isLoading
                     ? const CircularProgressIndicator()
@@ -123,7 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         "Continue",
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
               ),
